@@ -1,10 +1,11 @@
 // src/pages/LoginPage.jsx
 import React, { useState } from "react";
-import logo from "../assets/logo.png";
-import apiClient from "../api/apiClient";
+import logo from "../../assets/logo.png";
 import { useNavigate } from "react-router-dom";
+import { LoginPresenter } from "../presenter/LoginPresenter";
 
-export default function LoginPage() {
+export default function LoginView() {
+  const [presenter] = useState(() => new LoginPresenter());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,23 +14,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await apiClient.post("/login", {
-        email,
-        password,
-      });
-      localStorage.setItem("authToken", response.data.access_token);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Login gagal. Periksa email dan password Anda."
-      );
-    } finally {
-      setLoading(false);
-    }
+    presenter.setEmail(email);
+    presenter.setPassword(password);
+
+    await presenter.handleLogin(navigate);
+    setLoading(presenter.getLoading());
+    setError(presenter.getError());
   };
 
   return (
@@ -131,7 +121,7 @@ export default function LoginPage() {
                 color: "var(--atk-dark)",
                 background: "#fff",
               }}
-              // onClick={handleGoogleLogin}
+              onClick={() => presenter.handleGoogleLogin()}
             >
               <img
                 src="https://www.svgrepo.com/show/475656/google-color.svg"

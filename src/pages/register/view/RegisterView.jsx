@@ -1,77 +1,41 @@
 // src/pages/RegisterPage.jsx
 import React, { useState, Fragment } from "react";
-import apiClient from "../api/apiClient";
-import { useNavigate, Link } from "react-router-dom"; // Import Link
-// Pastikan path background image ini benar dan ganti gambar jika masih ada ikan
-// import backgroundImage from "../assets/bg-login.png";
-import Icon from "../assets/icon-pasifix.png"; // Ganti file gambar ini jika ikonnya masih bergambar ikan
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
-import logo from "../assets/logo.png";
+import logo from "../../assets/logo.png";
+import { RegisterPresenter } from "../presenter/RegisterPresenter";
 
-function RegisterPage() {
+function RegisterView() {
+  const [presenter] = useState(() => new RegisterPresenter());
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const [agree, setAgree] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const closeModalAndNavigate = () => {
+    presenter.closeModalAndNavigate(navigate);
     setIsSuccessModalOpen(false);
-    navigate("/login");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
 
-    // Validasi sisi client (sebelumnya sudah ada)
-    if (password !== passwordConfirmation) {
-      setError("Konfirmasi password tidak cocok.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password minimal harus 8 karakter.");
-      return;
-    }
-    if (!agree) {
-      setError(
-        "Anda harus menyetujui Syarat & Ketentuan serta Kebijakan Privasi."
-      );
-      return;
-    }
+    presenter.setName(name);
+    presenter.setEmail(email);
+    presenter.setPassword(password);
+    presenter.setPasswordConfirmation(passwordConfirmation);
+    presenter.setAgree(agree);
 
-    setLoading(true);
-
-    try {
-      const response = await apiClient.post("/register", {
-        name: name,
-        email: email,
-        password: password,
-        password_confirmation: passwordConfirmation,
-      });
-
-      console.log("Registration successful:", response.data);
-      setIsSuccessModalOpen(true);
-    } catch (err) {
-      console.error("Registration error:", err.response || err.message);
-      if (err.response?.data?.errors) {
-        const errorMessages = Object.values(err.response.data.errors)
-          .flat()
-          .join(" ");
-        setError(`Registrasi gagal: ${errorMessages}`);
-      } else {
-        setError(
-          err.response?.data?.message || "Registrasi gagal. Silakan coba lagi."
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+    await presenter.handleRegister();
+    setError(presenter.getError());
+    setLoading(presenter.getLoading());
+    setIsSuccessModalOpen(presenter.getIsSuccessModalOpen());
   };
 
   return (
@@ -299,4 +263,4 @@ function RegisterPage() {
   );
 }
 
-export default RegisterPage;
+export default RegisterView;

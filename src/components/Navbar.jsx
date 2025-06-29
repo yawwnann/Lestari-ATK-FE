@@ -9,10 +9,10 @@ import {
   HomeIcon,
   Bars3Icon,
   XMarkIcon,
-  ArchiveBoxIcon, // Untuk ikon Pesanan
+  ArchiveBoxIcon,
 } from "@heroicons/react/24/outline";
-
-import apiClient from "../api/apiClient"; // Tetap perlu untuk Logout
+import apiClient from "../api/apiClient";
+import logo from "../assets/logo.png";
 
 function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -20,7 +20,6 @@ function Navbar() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // Efek untuk membaca status login dari localStorage saat komponen mount/refresh
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (token) {
@@ -32,8 +31,7 @@ function Navbar() {
           email: parsedUser?.email || "",
           profile_photo_url: parsedUser?.profile_photo_url || null,
         });
-      } catch (e) {
-        console.error("Gagal parse authUser dari localStorage:", e);
+      } catch {
         setUser({ name: "Pengguna", email: "", profile_photo_url: null });
       }
     } else {
@@ -41,84 +39,76 @@ function Navbar() {
     }
   }, []);
 
-  // Fungsi handleLogout (Panggil API Dulu)
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await apiClient.post("/logout"); // Coba logout dari backend dulu
-      console.log("Logout API call successful (token invalidated on backend).");
-    } catch (error) {
-      console.error(
-        "Logout API call failed, proceeding with local logout:",
-        error.response || error
-      );
+      await apiClient.post("/logout");
     } finally {
       localStorage.removeItem("authToken");
       localStorage.removeItem("authUser");
       setUser(null);
       setIsLoggingOut(false);
       setIsMobileMenuOpen(false);
-      console.log("Local storage cleared, navigating to login.");
       navigate("/login");
     }
   };
 
   // Styling classes
   const getNavLinkClass = ({ isActive }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
+    `px-4 py-2 rounded-lg text-base font-semibold transition-colors flex items-center gap-1 ${
       isActive
-        ? "bg-emerald-700 text-white" // <--- Warna diubah
-        : "text-emerald-100 hover:bg-emerald-700 hover:text-white" // <--- Warna diubah
+        ? "bg-[var(--atk-secondary)] text-white"
+        : "text-white hover:bg-[var(--atk-secondary)] hover:text-white"
     }`;
   const getMobileNavLinkClass = ({ isActive }) =>
-    `block px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center ${
+    `block px-4 py-3 rounded-lg text-lg font-semibold transition-colors flex items-center gap-2 ${
       isActive
-        ? "bg-emerald-700 text-white" // <--- Warna diubah
-        : "text-emerald-100 hover:bg-emerald-700 hover:text-white" // <--- Warna diubah
+        ? "bg-[var(--atk-secondary)] text-white"
+        : "text-white hover:bg-[var(--atk-secondary)] hover:text-white"
     }`;
 
-  // Error handler gambar
   const handleNavbarImageError = (e) => {
     e.target.onerror = null;
     e.target.style.display = "none";
-    console.warn("Gagal memuat foto profil Navbar:", e.target.src);
   };
 
   return (
-    <nav className="bg-emerald-600 shadow-lg sticky top-0 z-50">
-      {/* <--- Warna diubah */}
+    <nav
+      style={{
+        background: "var(--atk-primary)",
+        boxShadow: "0 2px 16px 0 rgba(44,44,44,0.08)",
+      }}
+      className="sticky top-0 z-50"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Left Side */}
-          <div className="flex items-center">
-            <div className="flex items-center md:hidden mr-2">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-emerald-200 hover:text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white" // <--- Warna diubah
-                aria-controls="mobile-menu"
-                aria-expanded={isMobileMenuOpen}
-              >
-                <span className="sr-only">Buka menu</span>
-                {isMobileMenuOpen ? (
-                  <XMarkIcon className="block h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="block h-6 w-6" />
-                )}
-              </button>
-            </div>
-            <div className="flex-shrink-0">
-              <NavLink to="/" className="flex items-center space-x-2">
-                <span className="text-white font-bold  text-xl hidden sm:inline">
-                  LESTARI ATK {/* <--- Nama Perusahaan diubah */}
-                </span>
-              </NavLink>
-            </div>
+          {/* Left Side: Logo */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              type="button"
+              className="inline-flex items-center justify-center p-2 rounded-md text-white md:hidden hover:bg-[var(--atk-secondary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+              aria-controls="mobile-menu"
+              aria-expanded={isMobileMenuOpen}
+            >
+              <span className="sr-only">Buka menu</span>
+              {isMobileMenuOpen ? (
+                <XMarkIcon className="block h-6 w-6" />
+              ) : (
+                <Bars3Icon className="block h-6 w-6" />
+              )}
+            </button>
+            <NavLink to="/" className="flex items-center gap-2 select-none">
+              <img src={logo} alt="ATK Logo" className="h-8 w-8 rounded-full" />
+              <span className="text-white font-bold text-xl tracking-widest hidden sm:inline">
+                LESTARI ATK
+              </span>
+            </NavLink>
           </div>
 
           {/* Center Links */}
           <div className="hidden md:flex md:justify-center md:flex-1 md:mx-6">
-            <div className="flex items-baseline space-x-4">
+            <div className="flex items-baseline space-x-2">
               <NavLink to="/dashboard" className={getNavLinkClass}>
                 <HomeIcon className="h-5 w-5 mr-1" />
                 <span>Home</span>
@@ -132,21 +122,19 @@ function Navbar() {
                 <span>Keranjang</span>
               </NavLink>
               <NavLink to="/pesanan" className={getNavLinkClass}>
-                {" "}
-                {/* <--- Diubah: /PesananPage -> /pesanan */}
                 <ArchiveBoxIcon className="h-5 w-5 mr-1" />
                 <span>Pesanan</span>
               </NavLink>
             </div>
           </div>
 
-          {/* Right Side (Cek 'user' langsung, tanpa 'isLoading') */}
+          {/* Right Side */}
           <div className="hidden md:ml-4 md:flex md:items-center md:space-x-4">
             {user ? (
               <>
                 <NavLink
                   to="#"
-                  className="flex items-center p-1 rounded-full text-emerald-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-emerald-600 focus:ring-white" // <--- Warna diubah
+                  className="flex items-center p-1 rounded-full text-white hover:bg-[var(--atk-secondary)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--atk-primary)] focus:ring-white"
                   title={user.name || "Profile"}
                 >
                   <span className="sr-only">Profile</span>
@@ -165,8 +153,7 @@ function Navbar() {
                   onClick={handleLogout}
                   type="button"
                   disabled={isLoggingOut}
-                  className={`p-1 rounded-full text-emerald-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-emerald-600 focus:ring-white transition-opacity ${
-                    // <--- Warna diubah
+                  className={`p-1 rounded-full text-white hover:bg-[var(--atk-secondary)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--atk-primary)] focus:ring-white transition-opacity ${
                     isLoggingOut ? "cursor-not-allowed opacity-50" : ""
                   }`}
                   title="Logout"
@@ -179,7 +166,6 @@ function Navbar() {
                 </button>
               </>
             ) : (
-              // Jika user null (tidak ada token)
               <NavLink to="/login" className={getNavLinkClass}>
                 <ArrowRightOnRectangleIcon className="h-5 w-5 mr-1" />
                 <span>Login</span>
@@ -200,114 +186,85 @@ function Navbar() {
         leaveFrom="opacity-100 translate-y-0"
         leaveTo="opacity-0 translate-y-1"
       >
-        <div
-          className="md:hidden absolute w-full bg-emerald-600 shadow-md z-40" // <--- Warna diubah
-          id="mobile-menu"
+        <Dialog
+          as="div"
+          className="md:hidden fixed inset-0 z-50"
+          onClose={() => setIsMobileMenuOpen(false)}
         >
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <NavLink
-              key="/"
-              to="/"
-              className={getMobileNavLinkClass}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <HomeIcon className="h-5 w-5 mr-2" />
-              <span>Home</span>
-            </NavLink>
-            <NavLink
-              key="/katalog"
-              to="/katalog"
-              className={getMobileNavLinkClass}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <BuildingStorefrontIcon className="h-5 w-5 mr-2" />
-              <span>Katalog</span>
-            </NavLink>
-            <NavLink
-              key="/keranjang"
-              to="/keranjang"
-              className={getMobileNavLinkClass}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <ShoppingCartIcon className="h-5 w-5 mr-2" />
-              <span>Keranjang</span>
-            </NavLink>
-            <NavLink
-              key="/pesanan"
-              to="/pesanan"
-              className={getMobileNavLinkClass}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {" "}
-              {/* <--- Diubah: /orders -> /pesanan */}
-              <ArchiveBoxIcon className="h-5 w-5 mr-2" />
-              <span>Pesanan</span>
-            </NavLink>
-          </div>
-          {/* Mobile User/Login Section */}
-          <div className="pt-4 pb-3 border-t border-emerald-700">
-            {/* <--- Warna diubah */}
-            {user ? (
-              <div className="flex items-center px-5">
-                <NavLink
-                  to="/profile"
-                  className="flex-shrink-0"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {user.profile_photo_url ? (
-                    <img
-                      src={user.profile_photo_url}
-                      alt={user.name || "User profile"}
-                      className="h-10 w-10 rounded-full object-cover"
-                      onError={handleNavbarImageError}
-                    />
-                  ) : (
-                    <UserCircleIcon
-                      className="h-10 w-10 rounded-full text-emerald-200" // <--- Warna diubah
-                      aria-hidden="true"
-                    />
-                  )}
+          <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+          <div className="fixed top-0 left-0 right-0 bg-[var(--atk-primary)] shadow-lg rounded-b-2xl p-6 pt-4 z-50">
+            <div className="flex items-center justify-between mb-6">
+              <NavLink
+                to="/"
+                className="flex items-center gap-2 select-none"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <img
+                  src={logo}
+                  alt="ATK Logo"
+                  className="h-8 w-8 rounded-full bg-white shadow border-2 border-white"
+                />
+                <span className="text-white font-bold text-xl tracking-widest">
+                  LESTARI ATK
+                </span>
+              </NavLink>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-full text-white hover:bg-[var(--atk-secondary)]"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2">
+              <NavLink
+                to="/dashboard"
+                className={getMobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <HomeIcon className="h-6 w-6 mr-2" /> Home
+              </NavLink>
+              <NavLink
+                to="/katalog"
+                className={getMobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <BuildingStorefrontIcon className="h-6 w-6 mr-2" /> Katalog
+              </NavLink>
+              <NavLink
+                to="/keranjang"
+                className={getMobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <ShoppingCartIcon className="h-6 w-6 mr-2" /> Keranjang
+              </NavLink>
+              <NavLink
+                to="/pesanan"
+                className={getMobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <ArchiveBoxIcon className="h-6 w-6 mr-2" /> Pesanan
+              </NavLink>
+              {user ? (
+                <>
+                  <NavLink to="#" className={getMobileNavLinkClass}>
+                    <UserCircleIcon className="h-6 w-6 mr-2" /> Profil
+                  </NavLink>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-lg font-semibold text-white hover:bg-[var(--atk-secondary)]"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-6 w-6 mr-2" />{" "}
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <NavLink to="/login" className={getMobileNavLinkClass}>
+                  <ArrowRightOnRectangleIcon className="h-6 w-6 mr-2" /> Login
                 </NavLink>
-                <div className="ml-3 flex-1 min-w-0">
-                  <div className="text-base font-medium text-white truncate">
-                    {user.name || "User"}
-                  </div>
-                  <div className="text-sm font-medium text-emerald-200 truncate">
-                    {" "}
-                    {/* <--- Warna diubah */}
-                    {user.email || ""}
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  type="button"
-                  disabled={isLoggingOut}
-                  className={`ml-auto flex-shrink-0 p-1 rounded-full text-emerald-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-emerald-600 focus:ring-white ${
-                    // <--- Warna diubah
-                    isLoggingOut ? "cursor-not-allowed opacity-50" : ""
-                  }`}
-                  title="Logout"
-                >
-                  <ArrowRightOnRectangleIcon
-                    className="h-6 w-6"
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-            ) : (
-              <div className="px-2 sm:px-3">
-                <NavLink
-                  to="/login"
-                  className={getMobileNavLinkClass}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <ArrowRightOnRectangleIcon className="h-5 w-5 mr-2" />
-                  <span>Login</span>
-                </NavLink>
-              </div>
-            )}
+              )}
+            </nav>
           </div>
-        </div>
+        </Dialog>
       </Transition>
     </nav>
   );
