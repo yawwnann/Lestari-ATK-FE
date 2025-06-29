@@ -17,6 +17,7 @@ import {
   XCircleIcon as SolidXCircle,
 } from "@heroicons/react/24/solid";
 import { cn } from "../../../lib/utils";
+import CartList from "./CartList";
 
 const formatRupiah = (angka) => {
   const number = typeof angka === "string" ? parseInt(angka, 10) : angka;
@@ -378,7 +379,7 @@ function KeranjangPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#fff" }}>
       <main className="container mx-auto px-2 sm:px-4 py-6 md:py-10">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8 items-start">
           {/* Product List */}
           <section style={{ flex: 2, minWidth: 0 }}>
             <div style={{ marginBottom: 28 }}>
@@ -504,209 +505,13 @@ function KeranjangPage() {
                 </Link>
               </div>
             ) : (
-              <ul
-                style={{
-                  width: "100%",
-                  padding: 0,
-                  margin: 0,
-                  listStyle: "none",
-                }}
-              >
-                {cartItems.map((item) => {
-                  const isUpdating = updatingItemId === item.id;
-                  const isRemoving = removingItemId === item.id;
-                  const currentItemLoading = isUpdating || isRemoving;
-                  const isAvailable =
-                    item.atk?.status_ketersediaan?.toLowerCase() === "tersedia";
-                  const namaAtk =
-                    item.atk?.nama_atk ||
-                    item.atk?.nama ||
-                    "Nama ATK Tidak Tersedia";
-                  const hargaAtk = parseInt(item.atk?.harga, 10) || 0;
-                  return (
-                    <li
-                      key={item.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "18px 0",
-                        borderBottom: "1px solid #eee",
-                        background: currentItemLoading ? "#fafafa" : "#fff",
-                        opacity: currentItemLoading ? 0.6 : 1,
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      <img
-                        src={item.atk?.gambar_utama}
-                        alt={namaAtk}
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          background: "#f5f5f5",
-                          flexShrink: 0,
-                        }}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.src =
-                            "https://via.placeholder.com/100?text=Err";
-                        }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            marginBottom: 2,
-                          }}
-                        >
-                          <Link
-                            to={`/atk/${item.atk?.slug || "#"}`}
-                            style={{
-                              fontWeight: 600,
-                              fontSize: 15,
-                              color: "var(--atk-dark)",
-                              textDecoration: "none",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              maxWidth: 180,
-                            }}
-                          >
-                            {namaAtk}
-                          </Link>
-                          {!isAvailable && (
-                            <span
-                              style={{
-                                color: "#fff",
-                                background: "#e53935",
-                                borderRadius: 6,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                padding: "2px 8px",
-                                marginLeft: 6,
-                              }}
-                            >
-                              Habis
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: 15,
-                            color: "var(--atk-primary)",
-                          }}
-                        >
-                          {formatRupiah(hargaAtk)}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            handleUpdateQuantity(item.id, item.quantity - 1)
-                          }
-                          disabled={item.quantity <= 1 || currentItemLoading}
-                          style={{
-                            padding: 6,
-                            background: "none",
-                            border: "1px solid #eee",
-                            borderRadius: 6,
-                            color: "var(--atk-dark)",
-                            fontSize: 15,
-                            cursor:
-                              item.quantity <= 1 || currentItemLoading
-                                ? "not-allowed"
-                                : "pointer",
-                            opacity:
-                              item.quantity <= 1 || currentItemLoading
-                                ? 0.5
-                                : 1,
-                          }}
-                        >
-                          -
-                        </button>
-                        <span
-                          style={{
-                            minWidth: 28,
-                            textAlign: "center",
-                            fontWeight: 600,
-                            fontSize: 15,
-                          }}
-                        >
-                          {isUpdating ? "..." : item.quantity}
-                        </span>
-                        <button
-                          onClick={() =>
-                            handleUpdateQuantity(item.id, item.quantity + 1)
-                          }
-                          disabled={currentItemLoading || !isAvailable}
-                          style={{
-                            padding: 6,
-                            background: "none",
-                            border: "1px solid #eee",
-                            borderRadius: 6,
-                            color: "var(--atk-dark)",
-                            fontSize: 15,
-                            cursor:
-                              currentItemLoading || !isAvailable
-                                ? "not-allowed"
-                                : "pointer",
-                            opacity:
-                              currentItemLoading || !isAvailable ? 0.5 : 1,
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 15,
-                          color: "var(--atk-dark)",
-                          minWidth: 70,
-                          textAlign: "right",
-                        }}
-                      >
-                        {formatRupiah(hargaAtk * item.quantity)}
-                      </div>
-                      <button
-                        onClick={() => handleRemoveItem(item.id, namaAtk)}
-                        disabled={currentItemLoading}
-                        style={{
-                          marginLeft: 8,
-                          padding: 7,
-                          background: "none",
-                          border: "none",
-                          color: currentItemLoading ? "#bbb" : "#e53935",
-                          fontSize: 18,
-                          borderRadius: "50%",
-                          cursor: currentItemLoading
-                            ? "not-allowed"
-                            : "pointer",
-                          opacity: currentItemLoading ? 0.5 : 1,
-                        }}
-                        title="Hapus Item"
-                      >
-                        {isRemoving ? (
-                          <ArrowPathIcon className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <TrashIcon className="h-5 w-5" />
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <CartList
+                items={cartItems}
+                updatingItemId={updatingItemId}
+                removingItemId={removingItemId}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemoveItem}
+              />
             )}
           </section>
 

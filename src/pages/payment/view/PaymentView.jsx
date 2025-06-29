@@ -63,10 +63,10 @@ function PaymentPage() {
 
   if (loadingOrder) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <ArrowPathIcon className="animate-spin h-12 w-12 text-emerald-600 mx-auto mb-4" />
-          <p className="text-lg text-slate-700">Memuat detail pembayaran...</p>
+          <ArrowPathIcon className="animate-spin h-12 w-12 text-atk-primary mx-auto mb-4" />
+          <p className="text-lg text-gray-700">Memuat detail pembayaran...</p>
         </div>
       </div>
     );
@@ -74,17 +74,17 @@ function PaymentPage() {
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50 py-12">
+      <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4 max-w-2xl">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <XCircleIcon className="h-16 w-16 text-rose-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-800 mb-2">
+          <div className="bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
+            <XCircleIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-800 mb-2">
               Terjadi Kesalahan
             </h2>
-            <p className="text-slate-600 mb-6">{fetchError}</p>
+            <p className="text-gray-600 mb-6">{fetchError}</p>
             <Link
               to="/"
-              className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-all duration-200"
+              className="inline-flex items-center px-6 py-3 bg-atk-primary text-white font-medium rounded-lg hover:bg-atk-secondary transition-colors"
             >
               Kembali ke Beranda
             </Link>
@@ -96,19 +96,19 @@ function PaymentPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50 py-12">
+      <div className="min-h-screen bg-gray-50 py-12">
         <div className="container mx-auto px-4 max-w-2xl">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <InformationCircleIcon className="h-16 w-16 text-amber-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-800 mb-2">
+          <div className="bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
+            <InformationCircleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-800 mb-2">
               Informasi Pesanan Tidak Ditemukan
             </h2>
-            <p className="text-slate-600 mb-6">
+            <p className="text-gray-600 mb-6">
               Tidak dapat menemukan detail untuk pesanan ini.
             </p>
             <Link
               to="/"
-              className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-all duration-200"
+              className="inline-flex items-center px-6 py-3 bg-atk-primary text-white font-medium rounded-lg hover:bg-atk-secondary transition-colors"
             >
               Kembali ke Beranda
             </Link>
@@ -119,14 +119,14 @@ function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="max-w-2xl mx-auto">
           {/* Navigation */}
           <div className="flex items-center gap-4 mb-8">
             <Link
               to="/pesanan"
-              className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors"
+              className="flex items-center gap-2 text-atk-primary hover:text-atk-secondary transition-colors"
             >
               <ArrowLeftIcon className="h-5 w-5" />
               <span className="text-sm font-medium">
@@ -135,29 +135,29 @@ function PaymentPage() {
             </Link>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             {/* Success Header */}
-            <div className="p-8 text-center border-b border-slate-100">
-              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircleIcon className="h-10 w-10 text-emerald-500" />
+            <div className="p-8 text-center border-b border-gray-100 bg-gradient-to-r from-red-50 to-pink-50">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircleIcon className="h-10 w-10 text-atk-primary" />
               </div>
-              <h1 className="text-2xl font-bold text-slate-800 mb-2">
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">
                 Pesanan Anda Berhasil Dibuat!
               </h1>
-              <div className="flex items-center justify-center gap-2 text-slate-600 mb-4">
+              <div className="flex items-center justify-center gap-2 text-gray-600 mb-4">
                 <ClockIcon className="h-5 w-5" />
                 <span className="text-sm">Batas waktu pembayaran: 24 jam</span>
               </div>
               <div className="space-y-2">
-                <p className="text-slate-600">
+                <p className="text-gray-600">
                   ID Pesanan:{" "}
-                  <span className="font-semibold text-emerald-600">
+                  <span className="font-semibold text-atk-primary">
                     {order.id}
                   </span>
                 </p>
                 <p className="text-lg">
                   Total Pembayaran:{" "}
-                  <span className="font-bold text-emerald-600">
+                  <span className="font-bold text-atk-secondary">
                     {formatRupiah(order.total_harga)}
                   </span>
                 </p>
@@ -165,45 +165,45 @@ function PaymentPage() {
             </div>
 
             {/* Payment Instructions */}
-            <div className="p-8 bg-emerald-50/50">
-              <div className="bg-white rounded-xl p-6 border border-emerald-100">
-                <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <BanknotesIcon className="h-6 w-6 text-emerald-600" />
+            <div className="p-8 bg-gray-50">
+              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <BanknotesIcon className="h-6 w-6 text-atk-primary" />
                   Instruksi Pembayaran
                 </h2>
-                <p className="text-slate-600 mb-4">
+                <p className="text-gray-600 mb-4">
                   Silakan lakukan transfer ke salah satu rekening bank kami:
                 </p>
                 <div className="space-y-4">
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-700 mb-1">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
                       Bank BCA
                     </p>
-                    <p className="text-lg font-bold text-emerald-600">
+                    <p className="text-lg font-bold text-atk-primary">
                       1234567890
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-gray-500">
                       a/n: PT Andika Tani Sejahtera
                     </p>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-700 mb-1">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                    <p className="text-sm font-medium text-gray-700 mb-1">
                       Bank Mandiri
                     </p>
-                    <p className="text-lg font-bold text-emerald-600">
+                    <p className="text-lg font-bold text-atk-primary">
                       0987654321
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-gray-500">
                       a/n: PT Andika Tani Sejahtera
                     </p>
                   </div>
                 </div>
-                <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-100">
-                  <p className="text-sm font-medium text-amber-800 mb-2">
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-800 mb-2">
                     PENTING: Pastikan Anda mentransfer sesuai dengan jumlah
                     total di atas.
                   </p>
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-yellow-700">
                     Setelah melakukan transfer, mohon unggah bukti pembayaran
                     Anda di bawah ini dalam waktu 1x24 jam.
                   </p>

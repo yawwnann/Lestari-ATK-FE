@@ -58,55 +58,117 @@ function PaymentProofUploadForm({ orderId, onUploadSuccess, onUploadError }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmitProof}
-      className="mt-6 bg-gray-50 p-6 rounded-lg shadow"
-    >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-        <CloudArrowUpIcon className="h-6 w-6 mr-2 text-indigo-600" />
-        Unggah Bukti Pembayaran
-      </h3>
-      <p className="text-sm text-gray-600 mb-1">
-        Untuk Pesanan ID:{" "}
-        <strong className="font-medium text-gray-900">{orderId}</strong>
-      </p>
-      <p className="text-sm text-gray-600 mb-4">
-        Format yang diterima: JPG, PNG, GIF (Maks 2MB).
-      </p>
-      <div>
-        <label
-          htmlFor={`paymentProofFile-${orderId}`}
-          className="block text-sm font-medium text-gray-700 mb-1.5"
-        >
-          Pilih File:
-        </label>
-        <input
-          type="file"
-          id={`paymentProofFile-${orderId}`}
-          accept="image/jpeg,image/png,image/gif"
-          onChange={handleFileChange}
-          required
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          disabled={isUploading}
-        />
-      </div>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      {message && <p className="mt-2 text-sm text-green-600">{message}</p>}
-      <button
-        type="submit"
-        disabled={isUploading || !selectedFile}
-        className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-60 transition-opacity"
+    <div className="max-w-md mx-auto">
+      <form
+        onSubmit={handleSubmitProof}
+        className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm"
       >
-        {isUploading ? (
-          <div className="flex items-center justify-center">
-            <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" /> Mengirim
-            Bukti...
+        <div className="flex items-center mb-6">
+          <div className="p-2 bg-red-50 rounded-lg mr-3">
+            <CloudArrowUpIcon className="h-6 w-6 text-atk-primary" />
           </div>
-        ) : (
-          "Kirim Bukti Pembayaran"
+          <h3 className="text-xl font-semibold text-gray-800">
+            Unggah Bukti Pembayaran
+          </h3>
+        </div>
+
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-700 mb-1">
+            Pesanan ID:{" "}
+            <span className="font-semibold text-atk-primary">{orderId}</span>
+          </p>
+          <p className="text-xs text-gray-500">
+            Format: JPG, PNG, GIF (Maks 2MB)
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <label
+            htmlFor={`paymentProofFile-${orderId}`}
+            className="block text-sm font-medium text-gray-700 mb-3"
+          >
+            Pilih File Bukti Pembayaran
+          </label>
+          <input
+            type="file"
+            id={`paymentProofFile-${orderId}`}
+            accept="image/jpeg,image/png,image/gif"
+            onChange={handleFileChange}
+            required
+            className="block w-full text-sm text-gray-500 
+                     file:mr-4 file:py-2.5 file:px-4 file:rounded-lg 
+                     file:border file:border-red-200 file:bg-red-50 
+                     file:text-atk-primary file:text-sm file:font-medium 
+                     hover:file:bg-red-100 hover:file:border-red-300
+                     disabled:opacity-50 disabled:cursor-not-allowed 
+                     transition-all duration-200 cursor-pointer"
+            disabled={isUploading}
+          />
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <p className="ml-3 text-sm text-red-700">{error}</p>
+            </div>
+          </div>
         )}
-      </button>
-    </form>
+
+        {message && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-green-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <p className="ml-3 text-sm text-green-700">{message}</p>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isUploading || !selectedFile}
+          className="w-full bg-gradient-to-r from-atk-primary to-atk-secondary 
+                   hover:from-atk-secondary hover:to-atk-tertiary
+                   text-white font-medium py-3 px-4 rounded-lg 
+                   focus:outline-none focus:ring-2 focus:ring-atk-primary focus:ring-offset-2 
+                   disabled:opacity-50 disabled:cursor-not-allowed 
+                   transition-all duration-200 shadow-sm"
+        >
+          {isUploading ? (
+            <div className="flex items-center justify-center">
+              <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" />
+              Mengirim Bukti...
+            </div>
+          ) : (
+            "Kirim Bukti Pembayaran"
+          )}
+        </button>
+      </form>
+    </div>
   );
 }
 
