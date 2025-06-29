@@ -1,6 +1,6 @@
 // File: src/components/PaymentProofUploadForm.jsx (Contoh path)
 import React, { useState } from "react";
-import apiClient from "../api/apiClient"; // Sesuaikan path ke apiClient Anda
+import apiClient from "../../../api/apiClient"; // Sesuaikan path ke apiClient Anda
 import { ArrowPathIcon, CloudArrowUpIcon } from "@heroicons/react/24/outline";
 
 function PaymentProofUploadForm({ orderId, onUploadSuccess, onUploadError }) {

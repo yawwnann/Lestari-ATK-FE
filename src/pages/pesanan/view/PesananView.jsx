@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react"; // Tambahkan useCallback
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import apiClient from "../api/apiClient"; // Sesuaikan path
+import apiClient from "../../../api/apiClient";
 import {
   EyeIcon,
   ShoppingBagIcon,

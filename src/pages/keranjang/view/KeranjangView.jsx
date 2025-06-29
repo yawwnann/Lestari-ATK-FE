@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import apiClient from "../api/apiClient";
+import apiClient from "../../../api/apiClient";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ShoppingCartIcon,
@@ -16,7 +16,7 @@ import {
   CheckCircleIcon as SolidCheckCircle,
   XCircleIcon as SolidXCircle,
 } from "@heroicons/react/24/solid";
-import { cn } from "../lib/utils";
+import { cn } from "../../../lib/utils";
 
 const formatRupiah = (angka) => {
   const number = typeof angka === "string" ? parseInt(angka, 10) : angka;
@@ -376,250 +376,449 @@ function KeranjangPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <Link
-              to="/katalog"
-              className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors"
-            >
-              <ArrowLeftIcon className="h-5 w-5" />
-              <span className="text-sm font-medium">Kembali ke Katalog</span>
-            </Link>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Cart Items Section */}
-            <div className="lg:w-2/3">
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="p-6 border-b border-slate-100">
-                  <h1 className="text-2xl font-bold text-slate-800">
-                    Keranjang Belanja
-                  </h1>
-                  <p className="text-slate-500 mt-1">
-                    {cartItems.length} item dalam keranjang
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="m-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl">
-                    <p>{error}</p>
-                    {(error.includes("login") || error.includes("Sesi")) && (
-                      <button
-                        onClick={() => navigate("/login")}
-                        className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
-                      >
-                        Login
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {loading ? (
-                  <div className="p-6 space-y-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <CartItemSkeleton key={i} />
-                    ))}
-                  </div>
-                ) : cartItems.length === 0 ? (
-                  <div className="text-center p-12">
-                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <ShoppingCartIcon className="h-10 w-10 text-emerald-500" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-800 mb-2">
-                      Keranjang Anda Kosong
-                    </h3>
-                    <p className="text-slate-500 mb-6">
-                      Tambahkan beberapa ATK berkualitas untuk memulai.
-                    </p>
-                    <Link
-                      to="/katalog"
-                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-200"
-                    >
-                      Mulai Belanja
-                    </Link>
-                  </div>
-                ) : (
-                  <ul role="list" className="divide-y divide-slate-100">
-                    {cartItems.map((item) => {
-                      const isUpdating = updatingItemId === item.id;
-                      const isRemoving = removingItemId === item.id;
-                      const currentItemLoading = isUpdating || isRemoving;
-                      const isAvailable =
-                        item.atk?.status_ketersediaan?.toLowerCase() ===
-                        "tersedia";
-                      const namaAtk =
-                        item.atk?.nama_atk ||
-                        item.atk?.nama ||
-                        "Nama ATK Tidak Tersedia";
-                      const hargaAtk = parseInt(item.atk?.harga, 10) || 0;
-
-                      return (
-                        <li
-                          key={item.id}
-                          className={cn(
-                            "p-6 transition-all duration-200",
-                            currentItemLoading && "opacity-50 bg-slate-50"
-                          )}
-                        >
-                          <div className="flex items-center gap-6">
-                            <div className="relative">
-                              <img
-                                src={item.atk?.gambar_utama}
-                                alt={namaAtk}
-                                className="w-24 h-24 rounded-xl object-cover bg-slate-100"
-                                loading="lazy"
-                                onError={(e) => {
-                                  e.target.src =
-                                    "https://via.placeholder.com/100?text=Err";
-                                }}
-                              />
-                              {!isAvailable && (
-                                <div className="absolute inset-0 bg-slate-900/50 rounded-xl flex items-center justify-center">
-                                  <span className="text-white text-xs font-medium px-2 py-1 bg-rose-500 rounded-full">
-                                    Habis
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex-grow min-w-0">
-                              <Link
-                                to={`/atk/${item.atk?.slug || "#"}`}
-                                className="text-lg font-semibold text-slate-800 hover:text-emerald-600 transition-colors line-clamp-2"
-                              >
-                                {namaAtk}
-                              </Link>
-                              <p className="text-emerald-600 font-medium mt-1">
-                                {formatRupiah(hargaAtk)}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-col items-end gap-4">
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateQuantity(
-                                        item.id,
-                                        item.quantity - 1
-                                      )
-                                    }
-                                    disabled={
-                                      item.quantity <= 1 || currentItemLoading
-                                    }
-                                    className="px-3 py-2 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Kurangi"
-                                  >
-                                    <MinusIcon className="h-4 w-4" />
-                                  </button>
-                                  <span
-                                    className={cn(
-                                      "px-4 py-2 text-sm font-medium border-x border-slate-200 w-12 text-center",
-                                      isUpdating &&
-                                        "animate-pulse text-transparent"
-                                    )}
-                                  >
-                                    {isUpdating ? "..." : item.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateQuantity(
-                                        item.id,
-                                        item.quantity + 1
-                                      )
-                                    }
-                                    disabled={
-                                      currentItemLoading || !isAvailable
-                                    }
-                                    className="px-3 py-2 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Tambah"
-                                  >
-                                    <PlusIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-
-                                <button
-                                  onClick={() =>
-                                    handleRemoveItem(item.id, namaAtk)
-                                  }
-                                  disabled={currentItemLoading}
-                                  className="p-2 text-slate-400 hover:text-rose-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Hapus Item"
-                                >
-                                  {isRemoving ? (
-                                    <ArrowPathIcon className="h-5 w-5 animate-spin" />
-                                  ) : (
-                                    <TrashIcon className="h-5 w-5" />
-                                  )}
-                                </button>
-                              </div>
-
-                              <p className="text-lg font-semibold text-slate-800">
-                                {formatRupiah(hargaAtk * item.quantity)}
-                              </p>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+    <div style={{ minHeight: "100vh", background: "#fff" }}>
+      <main className="container mx-auto px-2 sm:px-4 py-6 md:py-10">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8">
+          {/* Product List */}
+          <section style={{ flex: 2, minWidth: 0 }}>
+            <div style={{ marginBottom: 28 }}>
+              <Link
+                to="/katalog"
+                style={{
+                  color: "var(--atk-primary)",
+                  fontWeight: 500,
+                  fontSize: 15,
+                  textDecoration: "underline",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <ArrowLeftIcon className="h-5 w-5" /> Kembali ke Katalog
+              </Link>
             </div>
-
-            {/* Order Summary Section */}
-            {!loading && cartItems.length > 0 && (
-              <div className="lg:w-1/3">
-                <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
-                  <h2 className="text-xl font-bold text-slate-800 mb-6">
-                    Ringkasan Belanja
-                  </h2>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-slate-600">
-                      <span>Subtotal</span>
-                      <span className="font-medium">
-                        {formatRupiah(totalHarga)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-slate-600">
-                      <span>Pengiriman</span>
-                      <span className="text-emerald-600">
-                        Dihitung saat checkout
-                      </span>
-                    </div>
-                    <div className="border-t border-slate-200 pt-4 mt-4">
-                      <div className="flex justify-between text-lg font-bold text-slate-800">
-                        <span>Total</span>
-                        <span>{formatRupiah(totalHarga)}</span>
-                      </div>
-                    </div>
-                  </div>
-
+            <h1
+              style={{
+                fontWeight: 800,
+                fontSize: 22,
+                color: "var(--atk-dark)",
+                marginBottom: 18,
+              }}
+            >
+              Keranjang
+            </h1>
+            {error && (
+              <div
+                style={{
+                  marginBottom: 18,
+                  padding: 14,
+                  background: "#fff0f0",
+                  border: "1px solid #f7374f22",
+                  color: "var(--atk-primary)",
+                  borderRadius: 10,
+                  fontSize: 15,
+                }}
+              >
+                <p>{error}</p>
+                {(error.includes("login") || error.includes("Sesi")) && (
                   <button
-                    onClick={handleCheckout}
-                    disabled={cartItems.length === 0}
-                    className={cn(
-                      "w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all duration-200",
-                      cartItems.length === 0
-                        ? "bg-slate-400 cursor-not-allowed"
-                        : "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20"
-                    )}
+                    onClick={() => navigate("/login")}
+                    style={{
+                      marginTop: 10,
+                      padding: "7px 16px",
+                      background: "var(--atk-primary)",
+                      color: "#fff",
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: 15,
+                      border: "none",
+                      cursor: "pointer",
+                    }}
                   >
-                    <CreditCardIcon className="h-5 w-5" />
-                    <span>Lanjut ke Pembayaran</span>
+                    Login
                   </button>
-
-                  <p className="mt-4 text-sm text-center text-slate-500">
-                    <InformationCircleIcon className="h-4 w-4 inline mr-1 align-text-bottom" />
-                    Biaya pengiriman akan dihitung pada langkah berikutnya
-                  </p>
-                </div>
+                )}
               </div>
             )}
-          </div>
+            {loading ? (
+              <div style={{ padding: 12 }}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <CartItemSkeleton key={i} />
+                ))}
+              </div>
+            ) : cartItems.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40 }}>
+                <div
+                  style={{
+                    width: 64,
+                    height: 64,
+                    background: "#f5f5f5",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 14px auto",
+                  }}
+                >
+                  <ShoppingCartIcon
+                    className="h-8 w-8"
+                    style={{ color: "var(--atk-primary)" }}
+                  />
+                </div>
+                <h3
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 18,
+                    color: "var(--atk-dark)",
+                    marginBottom: 6,
+                  }}
+                >
+                  Keranjang Kosong
+                </h3>
+                <p
+                  style={{
+                    color: "var(--atk-secondary)",
+                    marginBottom: 18,
+                    fontSize: 14,
+                  }}
+                >
+                  Belum ada produk di keranjang.
+                </p>
+                <Link
+                  to="/katalog"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "10px 28px",
+                    border: "none",
+                    borderRadius: 8,
+                    background: "var(--atk-primary)",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 15,
+                    cursor: "pointer",
+                    textDecoration: "none",
+                  }}
+                >
+                  Mulai Belanja
+                </Link>
+              </div>
+            ) : (
+              <ul
+                style={{
+                  width: "100%",
+                  padding: 0,
+                  margin: 0,
+                  listStyle: "none",
+                }}
+              >
+                {cartItems.map((item) => {
+                  const isUpdating = updatingItemId === item.id;
+                  const isRemoving = removingItemId === item.id;
+                  const currentItemLoading = isUpdating || isRemoving;
+                  const isAvailable =
+                    item.atk?.status_ketersediaan?.toLowerCase() === "tersedia";
+                  const namaAtk =
+                    item.atk?.nama_atk ||
+                    item.atk?.nama ||
+                    "Nama ATK Tidak Tersedia";
+                  const hargaAtk = parseInt(item.atk?.harga, 10) || 0;
+                  return (
+                    <li
+                      key={item.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "18px 0",
+                        borderBottom: "1px solid #eee",
+                        background: currentItemLoading ? "#fafafa" : "#fff",
+                        opacity: currentItemLoading ? 0.6 : 1,
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <img
+                        src={item.atk?.gambar_utama}
+                        alt={namaAtk}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          background: "#f5f5f5",
+                          flexShrink: 0,
+                        }}
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.src =
+                            "https://via.placeholder.com/100?text=Err";
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            marginBottom: 2,
+                          }}
+                        >
+                          <Link
+                            to={`/atk/${item.atk?.slug || "#"}`}
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 15,
+                              color: "var(--atk-dark)",
+                              textDecoration: "none",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              maxWidth: 180,
+                            }}
+                          >
+                            {namaAtk}
+                          </Link>
+                          {!isAvailable && (
+                            <span
+                              style={{
+                                color: "#fff",
+                                background: "#e53935",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: "2px 8px",
+                                marginLeft: 6,
+                              }}
+                            >
+                              Habis
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 15,
+                            color: "var(--atk-primary)",
+                          }}
+                        >
+                          {formatRupiah(hargaAtk)}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <button
+                          onClick={() =>
+                            handleUpdateQuantity(item.id, item.quantity - 1)
+                          }
+                          disabled={item.quantity <= 1 || currentItemLoading}
+                          style={{
+                            padding: 6,
+                            background: "none",
+                            border: "1px solid #eee",
+                            borderRadius: 6,
+                            color: "var(--atk-dark)",
+                            fontSize: 15,
+                            cursor:
+                              item.quantity <= 1 || currentItemLoading
+                                ? "not-allowed"
+                                : "pointer",
+                            opacity:
+                              item.quantity <= 1 || currentItemLoading
+                                ? 0.5
+                                : 1,
+                          }}
+                        >
+                          -
+                        </button>
+                        <span
+                          style={{
+                            minWidth: 28,
+                            textAlign: "center",
+                            fontWeight: 600,
+                            fontSize: 15,
+                          }}
+                        >
+                          {isUpdating ? "..." : item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handleUpdateQuantity(item.id, item.quantity + 1)
+                          }
+                          disabled={currentItemLoading || !isAvailable}
+                          style={{
+                            padding: 6,
+                            background: "none",
+                            border: "1px solid #eee",
+                            borderRadius: 6,
+                            color: "var(--atk-dark)",
+                            fontSize: 15,
+                            cursor:
+                              currentItemLoading || !isAvailable
+                                ? "not-allowed"
+                                : "pointer",
+                            opacity:
+                              currentItemLoading || !isAvailable ? 0.5 : 1,
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 15,
+                          color: "var(--atk-dark)",
+                          minWidth: 70,
+                          textAlign: "right",
+                        }}
+                      >
+                        {formatRupiah(hargaAtk * item.quantity)}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveItem(item.id, namaAtk)}
+                        disabled={currentItemLoading}
+                        style={{
+                          marginLeft: 8,
+                          padding: 7,
+                          background: "none",
+                          border: "none",
+                          color: currentItemLoading ? "#bbb" : "#e53935",
+                          fontSize: 18,
+                          borderRadius: "50%",
+                          cursor: currentItemLoading
+                            ? "not-allowed"
+                            : "pointer",
+                          opacity: currentItemLoading ? 0.5 : 1,
+                        }}
+                        title="Hapus Item"
+                      >
+                        {isRemoving ? (
+                          <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <TrashIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {/* Order Summary */}
+          <aside
+            style={{
+              flex: 1,
+              minWidth: 260,
+              maxWidth: 340,
+              alignSelf: "flex-start",
+              position: "sticky",
+              top: 32,
+              height: "fit-content",
+            }}
+          >
+            {!loading && cartItems.length > 0 && (
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 14,
+                  border: "1px solid #eee",
+                  padding: 22,
+                  boxShadow: "none",
+                }}
+              >
+                <h2
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 18,
+                    color: "var(--atk-dark)",
+                    marginBottom: 18,
+                  }}
+                >
+                  Ringkasan
+                </h2>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 15,
+                    color: "var(--atk-secondary)",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span>Subtotal</span>
+                  <span style={{ fontWeight: 600, color: "var(--atk-dark)" }}>
+                    {formatRupiah(totalHarga)}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 15,
+                    color: "var(--atk-secondary)",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span>Pengiriman</span>
+                  <span style={{ color: "var(--atk-primary)" }}>
+                    Dihitung saat checkout
+                  </span>
+                </div>
+                <div
+                  style={{
+                    borderTop: "1px solid #eee",
+                    margin: "16px 0 12px 0",
+                    paddingTop: 10,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontWeight: 700,
+                    fontSize: 17,
+                    color: "var(--atk-dark)",
+                  }}
+                >
+                  <span>Total</span>
+                  <span>{formatRupiah(totalHarga)}</span>
+                </div>
+                <button
+                  onClick={handleCheckout}
+                  disabled={cartItems.length === 0}
+                  style={{
+                    width: "100%",
+                    marginTop: 18,
+                    padding: "13px 0",
+                    borderRadius: 8,
+                    background:
+                      cartItems.length === 0 ? "#bbb" : "var(--atk-primary)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 16,
+                    border: "none",
+                    cursor: cartItems.length === 0 ? "not-allowed" : "pointer",
+                    opacity: cartItems.length === 0 ? 0.7 : 1,
+                  }}
+                >
+                  Lanjut ke Pembayaran
+                </button>
+                <p
+                  style={{
+                    marginTop: 12,
+                    fontSize: 13,
+                    textAlign: "center",
+                    color: "var(--atk-secondary)",
+                  }}
+                >
+                  <InformationCircleIcon className="h-4 w-4 inline mr-1 align-text-bottom" />{" "}
+                  Biaya pengiriman akan dihitung pada langkah berikutnya
+                </p>
+              </div>
+            )}
+          </aside>
         </div>
       </main>
     </div>

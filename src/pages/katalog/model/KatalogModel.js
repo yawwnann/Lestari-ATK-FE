@@ -90,13 +90,37 @@ export class KatalogModel {
     this.error = null;
 
     try {
-      const params = new URLSearchParams({
+      const params = {
         page: this.currentPage,
         per_page: this.perPage,
-        ...this.filters,
-      });
+      };
+      if (this.filters.search) params.search = this.filters.search;
+      if (this.filters.kategori) params.kategori = this.filters.kategori;
+      if (this.filters.sort) {
+        if (this.filters.sort === "latest") {
+          params.sort = "created_at";
+          params.order = "desc";
+        } else if (this.filters.sort === "oldest") {
+          params.sort = "created_at";
+          params.order = "asc";
+        } else if (this.filters.sort === "price_low") {
+          params.sort = "harga";
+          params.order = "asc";
+        } else if (this.filters.sort === "price_high") {
+          params.sort = "harga";
+          params.order = "desc";
+        } else if (this.filters.sort === "name_asc") {
+          params.sort = "nama_atk";
+          params.order = "asc";
+        } else if (this.filters.sort === "name_desc") {
+          params.sort = "nama_atk";
+          params.order = "desc";
+        }
+      }
+      if (this.filters.minPrice) params.minPrice = this.filters.minPrice;
+      if (this.filters.maxPrice) params.maxPrice = this.filters.maxPrice;
 
-      const response = await apiClient.get(`/atk?${params}`);
+      const response = await apiClient.get(`/atk`, { params });
       this.atkList = response.data.data || [];
       this.meta = response.data.meta || null;
     } catch (error) {

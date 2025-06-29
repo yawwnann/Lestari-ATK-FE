@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import apiClient from "../api/apiClient"; // Sesuaikan path apiClient Anda
+import apiClient from "../../../api/apiClient"; // Sesuaikan path apiClient Anda
 import {
   ArrowLeftIcon,
   ShoppingBagIcon,

@@ -3,7 +3,7 @@ import React, { useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
-import logo from "../../assets/logo.png";
+import logo from "../../../assets/logo.png";
 import { RegisterPresenter } from "../presenter/RegisterPresenter";
 
 function RegisterView() {

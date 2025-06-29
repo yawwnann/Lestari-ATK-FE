@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom"; // Import Link
-import apiClient from "../api/apiClient";
+import apiClient from "../../../api/apiClient";
 import {
   ShoppingCartIcon,
   CheckCircleIcon,
@@ -13,7 +13,6 @@ import {
   TagIcon, // Digunakan di AtkCard
 } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { cn } from "../lib/utils";
 
 // --- Helper Function: Format Rupiah ---
 const formatRupiah = (angka) => {
@@ -378,21 +377,21 @@ function DetailAtkPage() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background:
-          "linear-gradient(135deg, #fff 0%, var(--atk-primary) 10%, #fff 100%)",
-      }}
-    >
+    <div style={{ minHeight: "100vh", background: "#fff" }}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Breadcrumb */}
         <nav className="mb-6">
-          <ol className="flex items-center space-x-2 text-sm text-slate-600">
+          <ol
+            className="flex items-center space-x-2 text-sm"
+            style={{ color: "var(--atk-secondary)" }}
+          >
             <li>
               <Link
                 to="/katalog"
-                className="hover:text-emerald-600 transition-colors"
+                style={{
+                  color: "var(--atk-primary)",
+                  textDecoration: "underline",
+                }}
               >
                 Katalog
               </Link>
@@ -405,7 +404,10 @@ function DetailAtkPage() {
                 <li>
                   <Link
                     to={`/katalog?kategori_slug=${atkDetail.kategori.slug}`}
-                    className="hover:text-emerald-600 transition-colors"
+                    style={{
+                      color: "var(--atk-secondary)",
+                      textDecoration: "underline",
+                    }}
                   >
                     {atkDetail.kategori.nama_kategori}
                   </Link>
@@ -415,7 +417,9 @@ function DetailAtkPage() {
                 </li>
               </>
             )}
-            <li className="text-slate-800 font-medium">{atkDetail.nama_atk}</li>
+            <li style={{ color: "var(--atk-dark)", fontWeight: 600 }}>
+              {atkDetail.nama_atk}
+            </li>
           </ol>
         </nav>
 
@@ -423,22 +427,40 @@ function DetailAtkPage() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 lg:gap-16">
           {/* Image Section */}
           <div className="md:col-span-2">
-            <div className="relative overflow-hidden rounded-lg border border-slate-200/80">
+            <div
+              style={{
+                borderRadius: 16,
+                border: "1px solid #eee",
+                overflow: "hidden",
+                background: "#fafafa",
+              }}
+            >
               <img
                 src={atkDetail.gambar_utama}
                 alt={atkDetail.nama_atk}
-                className="w-full h-auto object-cover"
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  objectFit: "cover",
+                  background: "#f5f5f5",
+                }}
                 loading="lazy"
               />
               {atkDetail.status_ketersediaan && (
-                <div className="absolute top-4 right-4">
+                <div style={{ position: "absolute", top: 16, right: 16 }}>
                   <span
-                    className={cn(
-                      "px-3 py-1 text-sm font-bold rounded-full",
-                      atkDetail.status_ketersediaan.toLowerCase() === "tersedia"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-rose-100 text-rose-800"
-                    )}
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 8,
+                      padding: "4px 14px",
+                      background:
+                        atkDetail.status_ketersediaan.toLowerCase() ===
+                        "tersedia"
+                          ? "var(--atk-primary)"
+                          : "#eee",
+                      color: "#fff",
+                    }}
                   >
                     {atkDetail.status_ketersediaan}
                   </span>
@@ -451,26 +473,53 @@ function DetailAtkPage() {
           <div className="md:col-span-3">
             {/* Category Badge */}
             {atkDetail.kategori && (
-              <div className="mb-4">
-                <span className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-medium rounded-full">
-                  <TagIcon className="w-4 h-4 mr-1" />
+              <div className="mb-3">
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: "var(--atk-secondary)",
+                    background: "#f5f5f5",
+                    borderRadius: 8,
+                    padding: "4px 12px",
+                    fontWeight: 500,
+                  }}
+                >
                   {atkDetail.kategori.nama_kategori}
                 </span>
               </div>
             )}
 
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+            <h1
+              style={{
+                fontWeight: 800,
+                fontSize: "2.1rem",
+                color: "var(--atk-dark)",
+                marginBottom: 12,
+              }}
+            >
               {atkDetail.nama_atk}
             </h1>
 
             {/* Price */}
-            <div className="mb-6">
-              <p className="text-3xl font-bold text-emerald-700">
+            <div style={{ marginBottom: 18 }}>
+              <p
+                style={{
+                  fontSize: 28,
+                  fontWeight: 700,
+                  color: "var(--atk-primary)",
+                }}
+              >
                 {formatRupiah(atkDetail.harga)}
               </p>
               {atkDetail.stok !== undefined && (
-                <p className="text-sm text-slate-600 mt-1">
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--atk-secondary)",
+                    marginTop: 2,
+                  }}
+                >
                   Stok: {atkDetail.stok} unit
                 </p>
               )}
@@ -478,38 +527,80 @@ function DetailAtkPage() {
 
             {/* Description */}
             {atkDetail.deskripsi && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-800 mb-3">
+              <div style={{ marginBottom: 28 }}>
+                <h3
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 16,
+                    color: "var(--atk-dark)",
+                    marginBottom: 8,
+                  }}
+                >
                   Deskripsi
                 </h3>
-                <div className="prose prose-slate max-w-none">
-                  <p className="text-slate-600 leading-relaxed">
-                    {atkDetail.deskripsi}
-                  </p>
+                <div
+                  style={{
+                    color: "var(--atk-dark)",
+                    fontSize: 15,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {atkDetail.deskripsi}
                 </div>
               </div>
             )}
 
             {/* Add to Cart Section */}
-            <div className="border-t border-slate-200 pt-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div style={{ borderTop: "1px solid #eee", paddingTop: 18 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 16,
+                  alignItems: "center",
+                }}
+              >
                 {/* Quantity Selector */}
-                <div className="flex items-center border border-slate-300 rounded-lg">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid #eee",
+                    borderRadius: 8,
+                  }}
+                >
                   <button
                     onClick={() => handleQuantityChange(-1)}
                     disabled={quantity <= 1}
-                    className="p-2 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    style={{
+                      padding: 8,
+                      background: "none",
+                      border: "none",
+                      color: "var(--atk-dark)",
+                      fontSize: 18,
+                      cursor: quantity <= 1 ? "not-allowed" : "pointer",
+                      opacity: quantity <= 1 ? 0.5 : 1,
+                    }}
                   >
-                    <MinusIcon className="w-4 h-4" />
+                    -
                   </button>
-                  <span className="px-4 py-2 text-lg font-medium min-w-[60px] text-center">
+                  <span
+                    style={{ padding: "0 18px", fontSize: 18, fontWeight: 600 }}
+                  >
                     {quantity}
                   </span>
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    className="p-2 hover:bg-slate-100 transition-colors"
+                    style={{
+                      padding: 8,
+                      background: "none",
+                      border: "none",
+                      color: "var(--atk-dark)",
+                      fontSize: 18,
+                      cursor: "pointer",
+                    }}
                   >
-                    <PlusIcon className="w-4 h-4" />
+                    +
                   </button>
                 </div>
 
@@ -520,25 +611,41 @@ function DetailAtkPage() {
                     isAddingToCart ||
                     atkDetail.status_ketersediaan?.toLowerCase() !== "tersedia"
                   }
-                  className={cn(
-                    "flex items-center justify-center px-8 py-3 text-lg font-semibold text-white rounded-lg shadow-lg transition-all duration-200 min-w-[200px]",
-                    isAddingToCart || addToCartStatus === "success"
-                      ? "bg-emerald-600 cursor-not-allowed"
-                      : addToCartStatus === "error"
-                      ? "bg-red-600 hover:bg-red-700"
-                      : atkDetail.status_ketersediaan?.toLowerCase() ===
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "12px 32px",
+                    fontSize: 17,
+                    fontWeight: 700,
+                    borderRadius: 8,
+                    border: "none",
+                    background:
+                      isAddingToCart || addToCartStatus === "success"
+                        ? "var(--atk-primary)"
+                        : addToCartStatus === "error"
+                        ? "#e53935"
+                        : atkDetail.status_ketersediaan?.toLowerCase() ===
+                          "tersedia"
+                        ? "var(--atk-primary)"
+                        : "#bbb",
+                    color: "#fff",
+                    minWidth: 180,
+                    cursor:
+                      isAddingToCart ||
+                      atkDetail.status_ketersediaan?.toLowerCase() !==
                         "tersedia"
-                      ? "bg-emerald-600 hover:bg-emerald-700 hover:shadow-xl"
-                      : "bg-slate-400 cursor-not-allowed"
-                  )}
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity: isAddingToCart ? 0.7 : 1,
+                  }}
                 >
                   {getButtonContent()}
                 </button>
               </div>
-
               {/* Stock Warning */}
               {atkDetail.status_ketersediaan?.toLowerCase() !== "tersedia" && (
-                <p className="text-red-600 text-sm mt-2">
+                <p style={{ color: "#e53935", fontSize: 13, marginTop: 8 }}>
                   Maaf, ATK ini sedang tidak tersedia.
                 </p>
               )}
@@ -548,13 +655,88 @@ function DetailAtkPage() {
 
         {/* Related ATK Section */}
         {relatedAtkList.length > 0 && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">
+          <div style={{ marginTop: 56 }}>
+            <h2
+              style={{
+                fontWeight: 700,
+                fontSize: 22,
+                color: "var(--atk-dark)",
+                marginBottom: 18,
+              }}
+            >
               ATK Terkait
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {relatedAtkList.map((atk) => (
-                <AtkCard key={atk.id} atk={atk} />
+                <div
+                  key={atk.id}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 14,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <img
+                    src={atk.gambar_utama}
+                    alt={atk.nama_atk}
+                    style={{
+                      width: "100%",
+                      height: 90,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                      background: "#f5f5f5",
+                      marginBottom: 8,
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 15,
+                      color: "var(--atk-dark)",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {atk.nama_atk}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--atk-secondary)",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {atk.kategori?.nama_kategori || "-"}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "var(--atk-primary)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {formatRupiah(atk.harga)}
+                  </div>
+                  <button
+                    onClick={() => (window.location.href = `/atk/${atk.slug}`)}
+                    style={{
+                      border: "1px solid var(--atk-primary)",
+                      background: "none",
+                      color: "var(--atk-primary)",
+                      borderRadius: 8,
+                      padding: "0.4rem 0",
+                      fontWeight: 500,
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Detail
+                  </button>
+                </div>
               ))}
             </div>
           </div>
@@ -562,13 +744,28 @@ function DetailAtkPage() {
 
         {/* Related Loading */}
         {relatedLoading && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">
+          <div style={{ marginTop: 56 }}>
+            <h2
+              style={{
+                fontWeight: 700,
+                fontSize: 22,
+                color: "var(--atk-dark)",
+                marginBottom: 18,
+              }}
+            >
               ATK Terkait
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1, 2, 3].map((i) => (
-                <SkeletonCard key={i} />
+                <div
+                  key={i}
+                  style={{
+                    background: "#fafafa",
+                    borderRadius: 12,
+                    border: "1px solid #eee",
+                    height: 120,
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -576,12 +773,19 @@ function DetailAtkPage() {
 
         {/* Related Error */}
         {relatedError && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">
+          <div style={{ marginTop: 56 }}>
+            <h2
+              style={{
+                fontWeight: 700,
+                fontSize: 22,
+                color: "var(--atk-dark)",
+                marginBottom: 18,
+              }}
+            >
               ATK Terkait
             </h2>
             <div className="text-center py-8">
-              <p className="text-slate-600">{relatedError}</p>
+              <p style={{ color: "var(--atk-secondary)" }}>{relatedError}</p>
             </div>
           </div>
         )}
@@ -599,7 +803,7 @@ function DetailAtkPage() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
+            <div className="fixed inset-0k " />
           </Transition.Child>
 
           <div className="fixed inset-0 overflow-y-auto">
@@ -613,37 +817,55 @@ function DetailAtkPage() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <Dialog.Panel
+                  style={{
+                    background: "#fff",
+                    borderRadius: 16,
+                    border: "1px solid #eee",
+                    boxShadow: "0 2px 16px 0 rgba(44,44,44,0.08)",
+                    padding: 28,
+                    maxWidth: 380,
+                    width: "100%",
+                  }}
+                >
                   <Dialog.Title
                     as="h3"
-                    className={cn(
-                      "text-lg font-medium leading-6 mb-4",
-                      modalContent.type === "success"
-                        ? "text-emerald-800"
-                        : modalContent.type === "error"
-                        ? "text-red-800"
-                        : "text-slate-800"
-                    )}
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 18,
+                      marginBottom: 14,
+                      color:
+                        modalContent.type === "success"
+                          ? "var(--atk-primary)"
+                          : modalContent.type === "error"
+                          ? "#e53935"
+                          : "var(--atk-dark)",
+                    }}
                   >
                     {modalContent.title}
                   </Dialog.Title>
-                  <div className="mt-2">
-                    <p className="text-sm text-slate-600">
-                      {modalContent.message}
-                    </p>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      color: "var(--atk-dark)",
+                      marginBottom: 24,
+                    }}
+                  >
+                    {modalContent.message}
                   </div>
-
-                  <div className="mt-6 flex justify-end">
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
                     <button
                       type="button"
-                      className={cn(
-                        "inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                        modalContent.type === "success"
-                          ? "bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-500"
-                          : modalContent.type === "error"
-                          ? "bg-red-600 hover:bg-red-700 focus-visible:ring-red-500"
-                          : "bg-slate-600 hover:bg-slate-700 focus-visible:ring-slate-500"
-                      )}
+                      style={{
+                        border: "none",
+                        background: "var(--atk-primary)",
+                        color: "#fff",
+                        borderRadius: 8,
+                        padding: "0.6rem 1.5rem",
+                        fontWeight: 600,
+                        fontSize: 15,
+                        cursor: "pointer",
+                      }}
                       onClick={closeModal}
                     >
                       Tutup

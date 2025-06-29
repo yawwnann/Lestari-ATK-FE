@@ -1,8 +1,8 @@
 // File: src/pages/PaymentPage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
-import apiClient from "../api/apiClient";
-import PaymentProofUploadForm from "./PaymentProofUploadForm.jsx"; // Sesuaikan path jika berbeda
+import apiClient from "../../../api/apiClient";
+import PaymentProofUploadForm from "./PaymentProofUploadFormView.jsx";
 import {
   ArrowPathIcon,
   CheckCircleIcon,
@@ -12,7 +12,7 @@ import {
   ArrowLeftIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
-import { formatRupiah } from "../components/formatRupiah.jsx"; // Sesuaikan path jika berbeda
+import { formatRupiah } from "../../../components/formatRupiah.jsx"; // Sesuaikan path jika berbeda
 
 function PaymentPage() {
   const { orderId } = useParams();

@@ -1,8 +1,7 @@
-"use client"; // Jika Anda menggunakan Next.js App Router
+"use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import apiClient from "../api/apiClient"; // Sesuaikan path ke apiClient Anda
-import { useNavigate, useSearchParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { KatalogPresenter } from "../presenter/KatalogPresenter";
 import {
   MagnifyingGlassIcon,
   ShoppingCartIcon,
@@ -15,11 +14,15 @@ import {
   ChevronRightIcon,
   EyeIcon,
   TagIcon,
+  SparklesIcon,
+  FireIcon,
+  StarIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/solid";
-import { ArrowsUpDownIcon } from "@heroicons/react/24/outline";
-import { cn } from "../lib/utils"; // Sesuaikan path ke utilitas cn Anda
+import { ArrowsUpDownIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { cn } from "../../../lib/utils";
+import { useNavigate } from "react-router-dom";
 
-// Helper Function: Format Rupiah
 const formatRupiah = (angka) => {
   const number = typeof angka === "string" ? parseInt(angka, 10) : angka;
   if (isNaN(number) || number === null || number === undefined) return "Rp -";
@@ -31,45 +34,76 @@ const formatRupiah = (angka) => {
   }).format(number);
 };
 
-// Custom Hook: useDebounce
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
+function FilterChips({ filters, onRemoveFilter, onResetAll }) {
+  const activeFilters = [];
+  if (filters.search)
+    activeFilters.push({ type: "search", label: `"${filters.search}"` });
+  if (filters.kategori)
+    activeFilters.push({ type: "kategori", label: filters.kategori });
+  if (filters.sort && filters.sort !== "latest") {
+    const sortLabels = {
+      oldest: "Terlama",
+      price_low: "Harga Terendah",
+      price_high: "Harga Tertinggi",
+      name_asc: "Nama A-Z",
+      name_desc: "Nama Z-A",
+    };
+    activeFilters.push({ type: "sort", label: sortLabels[filters.sort] });
+  }
+  if (activeFilters.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-6">
+      <span className="text-xs font-medium text-slate-600">Filter Aktif:</span>
+      {activeFilters.map((filter, idx) => (
+        <span
+          key={idx}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 text-xs font-medium rounded-full border border-emerald-200"
+        >
+          <FunnelIcon className="w-3 h-3" />
+          {filter.label}
+          <button
+            onClick={() => onRemoveFilter(filter.type)}
+            className="ml-1 hover:bg-emerald-200 rounded-full p-0.5 transition-colors"
+          >
+            <XMarkIcon className="w-3 h-3" />
+          </button>
+        </span>
+      ))}
+      <button
+        onClick={onResetAll}
+        className="text-xs text-slate-500 hover:text-slate-700 font-medium underline"
+      >
+        Reset Semua
+      </button>
+    </div>
+  );
 }
 
-// --- Komponen AtkCard ---
-function AtkCard({ atk }) {
-  const navigate = useNavigate();
+function AtkCard({ atk, presenter }) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
+  const [isLiked, setIsLiked] = useState(false);
 
   const viewDetail = (e) => {
     if (
       e.target.closest(".add-to-cart-button") ||
-      e.target.closest(".view-detail-button")
-    ) {
+      e.target.closest(".view-detail-button") ||
+      e.target.closest(".like-button")
+    )
       return;
-    }
-    navigate(`/atk/${atk?.slug || atk?.id}`);
+    presenter.handleNavigateToDetail(null, atk);
   };
 
   const navigateToDetailFromButton = (e) => {
     e.stopPropagation();
-    navigate(`/atk/${atk?.slug || atk?.id}`);
+    presenter.handleNavigateToDetail(null, atk);
   };
 
   const statusKetersediaan = atk?.status_ketersediaan?.toLowerCase();
-  const isTersedia = statusKetersediaan === "tersedia";
-
-  const statusBadgeColor = isTersedia
-    ? "bg-emerald-500/15 text-emerald-700 ring-1 ring-inset ring-emerald-600/30"
-    : "bg-rose-500/15 text-rose-700 ring-1 ring-inset ring-rose-600/30";
+  const isTersedia = presenter.isProductAvailable(atk);
+  const statusBadgeColor = presenter.getStatusBadgeColor(
+    atk?.status_ketersediaan
+  );
 
   const namaAtkDisplay =
     atk?.nama_atk || atk?.nama || "Nama ATK Tidak Tersedia";
@@ -82,48 +116,46 @@ function AtkCard({ atk }) {
     if (isAddingToCart || !isTersedia) return;
     setIsAddingToCart(true);
     setFeedback({ type: "", message: "" });
-    try {
-      await apiClient.post("/keranjang", { atk_id: atk.id, quantity: 1 });
+
+    const result = await presenter.handleAddToCart(atk.id, 1);
+
+    if (result.success) {
       setFeedback({
         type: "success",
         message: `${namaAtkDisplay} ditambahkan!`,
       });
-      window.dispatchEvent(new CustomEvent("cartUpdated"));
       setTimeout(() => setFeedback({ type: "", message: "" }), 2000);
-    } catch (err) {
-      console.error("Gagal menambah ke keranjang (dari Katalog):", err);
-      let errorMessage = "Gagal menambahkan";
-      if (err.response) {
-        if (err.response.status === 401 || err.response.status === 403) {
-          errorMessage = "Silakan login";
-        } else if (err.response.data?.message) {
-          errorMessage = err.response.data.message.substring(0, 30);
-        }
-      }
-      setFeedback({ type: "error", message: errorMessage });
+    } else {
+      setFeedback({ type: "error", message: result.error });
       setTimeout(() => setFeedback({ type: "", message: "" }), 2500);
-    } finally {
-      setIsAddingToCart(false);
     }
+
+    setIsAddingToCart(false);
+  };
+
+  const handleLike = (e) => {
+    e.stopPropagation();
+    setIsLiked(!isLiked);
   };
 
   return (
     <div
-      className="group bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl flex flex-col h-full relative shadow-lg border border-slate-200/80 hover:border-emerald-400"
+      className="group bg-white rounded-3xl overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:-translate-y-2 flex flex-col h-full relative shadow-lg border border-slate-100 hover:border-emerald-300"
       onClick={viewDetail}
     >
       {feedback.message && (
         <div
           className={cn(
-            "absolute inset-x-0 top-0 z-30 p-2 text-center text-xs font-bold transition-all duration-300",
+            "absolute inset-x-0 top-0 z-30 p-3 text-center text-xs font-bold transition-all duration-300",
             feedback.type === "success"
-              ? "bg-emerald-500 text-white"
-              : "bg-rose-500 text-white"
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
+              : "bg-gradient-to-r from-rose-500 to-rose-600 text-white"
           )}
         >
           {feedback.message}
         </div>
       )}
+
       <div className="relative overflow-hidden aspect-[4/3] cursor-pointer">
         <img
           src={
@@ -132,7 +164,7 @@ function AtkCard({ atk }) {
               : "https://placehold.co/450x338/e2e8f0/94a3b8?text=Gambar+ATK"
           }
           alt={namaAtkDisplay}
-          className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           loading="lazy"
           onError={(e) => {
             e.target.onerror = null;
@@ -140,17 +172,19 @@ function AtkCard({ atk }) {
               "https://placehold.co/450x338/fecaca/991b1b?text=Error";
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div className="absolute top-3 left-3 z-10 flex flex-col space-y-2">
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+        <div className="absolute top-4 left-4 z-10 flex flex-col space-y-2">
           {kategoriNama && (
-            <span className="bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2.5 py-1 rounded-full shadow-sm tracking-wide flex items-center">
-              <TagIcon className="w-3 h-3 mr-1 opacity-80" /> {kategoriNama}
+            <span className="bg-emerald-600/95 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg tracking-wide flex items-center">
+              <TagIcon className="w-3 h-3 mr-1" /> {kategoriNama}
             </span>
           )}
           {statusKetersediaan && (
             <span
               className={cn(
-                "text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide backdrop-blur-sm",
+                "text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg tracking-wide backdrop-blur-sm",
                 statusBadgeColor
               )}
             >
@@ -159,34 +193,76 @@ function AtkCard({ atk }) {
             </span>
           )}
         </div>
+
+        <button
+          onClick={handleLike}
+          className="like-button absolute top-4 right-4 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all duration-200 group/like"
+        >
+          <HeartIcon
+            className={cn(
+              "w-5 h-5 transition-all duration-200",
+              isLiked
+                ? "text-rose-500 fill-rose-500 scale-110"
+                : "text-slate-600 group-hover/like:text-rose-500"
+            )}
+          />
+        </button>
+
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+          <button
+            onClick={handleAddToCart}
+            disabled={!isTersedia || isAddingToCart}
+            className="add-to-cart-button bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-2 transform scale-90 group-hover:scale-100"
+          >
+            {isAddingToCart ? (
+              <ArrowPathIcon className="w-5 h-5 animate-spin" />
+            ) : (
+              <ShoppingCartIcon className="w-5 h-5" />
+            )}
+            {isAddingToCart ? "Menambahkan..." : "Tambah ke Keranjang"}
+          </button>
+        </div>
       </div>
 
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="text-sm md:text-base font-semibold text-slate-800 mb-2 line-clamp-2 leading-snug group-hover:text-emerald-600 transition-colors cursor-pointer">
+      <div className="p-6 flex flex-col flex-grow">
+        <h3 className="text-lg font-bold text-slate-800 mb-3 line-clamp-2 leading-tight group-hover:text-emerald-600 transition-colors cursor-pointer">
           {namaAtkDisplay}
         </h3>
-        <p className="text-base md:text-lg font-bold text-emerald-600 mb-4">
+
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <StarIcon
+                key={i}
+                className="w-4 h-4 text-yellow-400 fill-current"
+              />
+            ))}
+          </div>
+          <span className="text-xs text-slate-500">(4.8)</span>
+        </div>
+
+        <p className="text-xl font-bold text-emerald-600 mb-6">
           {formatRupiah(hargaAtk)}
         </p>
 
         <div className="mt-auto grid grid-cols-2 gap-3">
           <button
             onClick={navigateToDetailFromButton}
-            className="view-detail-button w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-3 rounded-xl shadow-sm transition-all duration-200 flex items-center justify-center text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+            className="view-detail-button w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-2xl shadow-sm transition-all duration-200 flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
             aria-label={`Lihat detail ${namaAtkDisplay}`}
           >
-            <EyeIcon className="w-4 h-4 mr-1.5 sm:mr-2" /> Detail
+            <EyeIcon className="w-4 h-4 mr-2" /> Detail
           </button>
           <button
             onClick={handleAddToCart}
             disabled={!isTersedia || isAddingToCart}
             title={isTersedia ? "Beli Sekarang" : "Stok Habis"}
-            className="add-to-cart-button w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 ease-in-out flex items-center justify-center text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:bg-slate-400/70 disabled:text-slate-100 disabled:cursor-not-allowed disabled:hover:shadow-md disabled:hover:bg-slate-400/70 group/button"
+            className="add-to-cart-button w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3 px-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 ease-in-out flex items-center justify-center text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:bg-slate-400/70 disabled:text-slate-100 disabled:cursor-not-allowed disabled:hover:shadow-md disabled:hover:bg-slate-400/70 group/button"
           >
             {isAddingToCart ? (
               <ArrowPathIcon className="w-4 h-4 animate-spin" />
             ) : (
-              <ShoppingCartIcon className="w-4 h-4 mr-1.5 sm:mr-2 transition-transform duration-200 group-hover/button:scale-110" />
+              <ShoppingCartIcon className="w-4 h-4 mr-2 transition-transform duration-200 group-hover/button:scale-110" />
             )}
             <span className="transition-all duration-200">
               {isAddingToCart ? "..." : isTersedia ? "Beli" : "Habis"}
@@ -198,7 +274,6 @@ function AtkCard({ atk }) {
   );
 }
 
-// --- Komponen Pagination ---
 function Pagination({ meta, onPageChange }) {
   if (!meta || !meta.links || meta.last_page <= 1) return null;
 
@@ -216,22 +291,22 @@ function Pagination({ meta, onPageChange }) {
   };
 
   return (
-    <nav className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-200/70 bg-white/90 backdrop-blur-sm px-4 py-4 sm:px-6 mt-8 sm:mt-10 rounded-2xl shadow-lg">
-      <div className="text-xs sm:text-sm text-slate-600 mb-3 sm:mb-0">
+    <nav className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-200/70 bg-white/95 backdrop-blur-sm px-6 py-6 mt-10 rounded-3xl shadow-xl">
+      <div className="text-sm text-slate-600 mb-4 sm:mb-0">
         Menampilkan{" "}
-        <span className="font-semibold text-slate-800">{meta.from || 0}</span> -{" "}
-        <span className="font-semibold text-slate-800">{meta.to || 0}</span>{" "}
-        dari{" "}
-        <span className="font-semibold text-slate-800">{meta.total || 0}</span>{" "}
+        <span className="font-bold text-slate-800">{meta.from || 0}</span> -{" "}
+        <span className="font-bold text-slate-800">{meta.to || 0}</span> dari{" "}
+        <span className="font-bold text-slate-800">{meta.total || 0}</span>{" "}
         hasil
       </div>
-      <div className="isolate inline-flex -space-x-px rounded-xl shadow-sm">
+      <div className="isolate inline-flex -space-x-px rounded-2xl shadow-lg">
         {meta.links.map((link, index) => {
           let labelContent = link.label.replace(/&laquo;|&raquo;/g, "").trim();
           const isPrev =
             link.label.includes("Previous") || link.label.includes("&laquo;");
           const isNext =
             link.label.includes("Next") || link.label.includes("&raquo;");
+
           if (isPrev)
             labelContent = (
               <>
@@ -252,16 +327,18 @@ function Pagination({ meta, onPageChange }) {
                 <span className="sr-only">Berikutnya</span>
               </>
             );
+
           if (link.label === "...") {
             return (
               <span
                 key={`ellipsis-${index}`}
-                className="relative inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600 ring-1 ring-inset ring-slate-300/70 cursor-default"
+                className="relative inline-flex items-center justify-center px-4 py-3 text-sm font-semibold text-slate-600 ring-1 ring-inset ring-slate-300/70 cursor-default"
               >
                 {labelContent}
               </span>
             );
           }
+
           return (
             <button
               key={index}
@@ -269,23 +346,16 @@ function Pagination({ meta, onPageChange }) {
               disabled={!link.url || link.active}
               aria-current={link.active ? "page" : undefined}
               className={cn(
-                "relative inline-flex items-center justify-center px-3 py-2 text-xs sm:text-sm font-medium ring-1 ring-inset ring-slate-300/70 focus:z-20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0 transition-all duration-150 ease-in-out",
+                "relative inline-flex items-center justify-center px-4 py-3 text-sm font-medium ring-1 ring-inset ring-slate-300/70 focus:z-20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-0 transition-all duration-200 ease-in-out",
                 link.active
-                  ? "z-10 bg-emerald-600 text-white cursor-default ring-emerald-600"
+                  ? "z-10 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white cursor-default ring-emerald-600"
                   : !link.url
                   ? "text-slate-400 cursor-not-allowed bg-slate-50/50"
-                  : "text-slate-700 bg-white hover:bg-slate-100/70 hover:text-emerald-700",
-                index === 0 && "rounded-l-xl",
-                index === meta.links.length - 1 && "rounded-r-xl",
-                (isPrev || isNext) && "px-2 sm:px-2.5"
+                  : "text-slate-700 bg-white hover:bg-emerald-50 hover:text-emerald-700",
+                index === 0 && "rounded-l-2xl",
+                index === meta.links.length - 1 && "rounded-r-2xl",
+                (isPrev || isNext) && "px-3 sm:px-4"
               )}
-              aria-label={
-                isPrev
-                  ? "Halaman sebelumnya"
-                  : isNext
-                  ? "Halaman berikutnya"
-                  : `Halaman ${link.label}`
-              }
             >
               {labelContent}
             </button>
@@ -296,326 +366,357 @@ function Pagination({ meta, onPageChange }) {
   );
 }
 
-// --- Komponen SkeletonCard ---
 const SkeletonCard = () => (
-  <div className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden animate-pulse shadow-lg">
-    <div className="aspect-[4/3] bg-slate-200/80"></div>
-    <div className="p-4">
-      <div className="h-4 w-4/5 bg-slate-200/80 rounded-lg mb-2"></div>
-      <div className="h-5 w-2/5 bg-slate-200/80 rounded-lg mb-4"></div>
+  <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden animate-pulse shadow-lg">
+    <div className="aspect-[4/3] bg-gradient-to-br from-slate-200 to-slate-300"></div>
+    <div className="p-6">
+      <div className="h-5 w-4/5 bg-slate-200 rounded-lg mb-3"></div>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex gap-1">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="w-4 h-4 bg-slate-200 rounded"></div>
+          ))}
+        </div>
+        <div className="w-8 h-3 bg-slate-200 rounded"></div>
+      </div>
+      <div className="h-6 w-2/5 bg-slate-200 rounded-lg mb-6"></div>
       <div className="grid grid-cols-2 gap-3 mt-3">
-        <div className="h-10 w-full bg-slate-200/80 rounded-xl"></div>
-        <div className="h-10 w-full bg-slate-200/80 rounded-xl"></div>
+        <div className="h-12 w-full bg-slate-200 rounded-2xl"></div>
+        <div className="h-12 w-full bg-slate-200 rounded-2xl"></div>
       </div>
     </div>
   </div>
 );
 
-// --- Komponen Utama KatalogPage ---
 function KatalogPage() {
+  const [presenter] = useState(() => new KatalogPresenter());
   const [atkList, setAtkList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [paginationData, setPaginationData] = useState(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get("page") || "1", 10)
-  );
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
-  const [selectedSort, setSelectedSort] = useState(
-    searchParams.get("sort_by") || "terbaru"
-  );
-  const [selectedAvailability, setSelectedAvailability] = useState(
-    searchParams.get("status_ketersediaan") || ""
-  );
-  const debouncedSearch = useDebounce(searchQuery, 550);
+  const [meta, setMeta] = useState(null);
+  const [filters, setFilters] = useState({
+    search: "",
+    kategori: "",
+    sort: "latest",
+    minPrice: "",
+    maxPrice: "",
+  });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const pageFromUrl = parseInt(searchParams.get("page") || "1", 10);
-    const searchFromUrl = searchParams.get("q") || "";
-    const sortFromUrl = searchParams.get("sort_by") || "terbaru";
-    const availabilityFromUrl = searchParams.get("status_ketersediaan") || "";
+    const initializeData = async () => {
+      await presenter.initialize();
+      setAtkList(presenter.getAtkList());
+      setLoading(presenter.getLoading());
+      setError(presenter.getError());
+      setMeta(presenter.getMeta());
+    };
+    initializeData();
+  }, [presenter]);
 
-    if (pageFromUrl !== currentPage) setCurrentPage(pageFromUrl);
-    if (searchFromUrl !== searchQuery) setSearchQuery(searchFromUrl);
-    if (sortFromUrl !== selectedSort) setSelectedSort(sortFromUrl);
-    if (availabilityFromUrl !== selectedAvailability)
-      setSelectedAvailability(availabilityFromUrl);
-  }, [
-    searchParams,
-    currentPage,
-    searchQuery,
-    selectedSort,
-    selectedAvailability,
-  ]);
-
-  const fetchKatalog = useCallback(
-    async (page, search, sort, availability) => {
-      setLoading(true);
-      setError(null);
-      const params = { page, per_page: 12 };
-      if (search) params.q = search;
-      if (sort === "harga_asc") {
-        params.sort = "harga";
-        params.order = "asc";
-      } else if (sort === "harga_desc") {
-        params.sort = "harga";
-        params.order = "desc";
-      } else {
-        params.sort = "created_at";
-        params.order = "desc";
-      }
-      if (availability) params.status_ketersediaan = availability;
-
-      const newSearchParams = new URLSearchParams();
-      if (page > 1) newSearchParams.set("page", page.toString());
-      if (search) newSearchParams.set("q", search);
-      if (sort !== "terbaru") newSearchParams.set("sort_by", sort);
-      if (availability)
-        newSearchParams.set("status_ketersediaan", availability);
-
-      const currentQs = searchParams.toString();
-      const newQs = newSearchParams.toString();
-
-      if (currentQs !== newQs) {
-        setSearchParams(newSearchParams, { replace: true });
-      }
-
-      try {
-        const response = await apiClient.get("/atk", { params });
-        if (
-          response.data &&
-          response.data.data &&
-          response.data.meta &&
-          Array.isArray(response.data.data)
-        ) {
-          setAtkList(response.data.data);
-          setPaginationData(response.data);
-        } else {
-          setAtkList([]);
-          setPaginationData(null);
-          if (
-            response.data &&
-            response.data.data &&
-            response.data.data.length > 0 &&
-            !response.data.meta
-          ) {
-            setError("Format data dari server tidak sesuai (meta missing).");
-          } else if (!response.data) {
-            setError("Tidak ada data diterima dari server.");
-          }
-        }
-      } catch (err) {
-        console.error("Gagal memuat katalog:", err);
-        let errMsg = "Gagal memuat data atk. Silakan coba lagi nanti.";
-        if (err.response?.data?.message) errMsg = err.response.data.message;
-        else if (err.message) errMsg = err.message;
-        setError(errMsg);
-        setAtkList([]);
-        setPaginationData(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [searchParams, setSearchParams]
-  );
-
-  useEffect(() => {
-    fetchKatalog(
-      currentPage,
-      debouncedSearch,
-      selectedSort,
-      selectedAvailability
-    );
-  }, [
-    currentPage,
-    debouncedSearch,
-    selectedSort,
-    selectedAvailability,
-    fetchKatalog,
-  ]);
-
-  const handleFilterOrSortChange = (type, value) => {
-    let shouldResetPage = false;
-    if (type === "search") {
-      if (searchQuery !== value) shouldResetPage = true;
-      setSearchQuery(value);
-    } else if (type === "sort") {
-      if (selectedSort !== value) shouldResetPage = true;
-      setSelectedSort(value);
-    } else if (type === "availability") {
-      if (selectedAvailability !== value) shouldResetPage = true;
-      setSelectedAvailability(value);
-    }
-    if (shouldResetPage && currentPage !== 1) {
-      setCurrentPage(1);
-    }
+  const handleFilterOrSortChange = async (type, value) => {
+    setFilters((prev) => ({ ...prev, [type]: value }));
+    await presenter.handleFilterOrSortChange(type, value);
+    setAtkList(presenter.getAtkList());
+    setMeta(presenter.getMeta());
+    setLoading(presenter.getLoading());
+    setError(presenter.getError());
   };
 
-  const handlePageChange = (page) => {
-    const pageNum = parseInt(page, 10);
-    if (
-      !isNaN(pageNum) &&
-      pageNum >= 1 &&
-      pageNum <= (paginationData?.meta?.last_page || 1) &&
-      pageNum !== currentPage
-    ) {
-      setCurrentPage(pageNum);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  const handlePageChange = async (page) => {
+    await presenter.handlePageChange(page);
+    setAtkList(presenter.getAtkList());
+    setMeta(presenter.getMeta());
+    setLoading(presenter.getLoading());
+    setError(presenter.getError());
   };
 
-  const resetAllFilters = () => {
-    setSearchQuery("");
-    setSelectedSort("terbaru");
-    setSelectedAvailability("");
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
+  const resetAllFilters = async () => {
+    setFilters({
+      search: "",
+      kategori: "",
+      sort: "latest",
+      minPrice: "",
+      maxPrice: "",
+    });
+    await presenter.resetAllFilters();
+    setAtkList(presenter.getAtkList());
+    setMeta(presenter.getMeta());
+    setLoading(presenter.getLoading());
+    setError(presenter.getError());
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
-      <div className="container mx-auto px-4 sm:px-5 lg:px-6 py-8 md:py-12">
-        <div className="text-center mb-8 md:mb-10">
-          <h1 className="text-3xl md:text-4xl lg:text-[2.8rem] font-extrabold tracking-tight text-slate-800">
-            Temukan <span className="text-emerald-600">ATK Berkualitas</span>{" "}
-            Pilihan Anda
-          </h1>
-          <p className="mt-3 md:mt-4 text-sm sm:text-base md:text-lg text-slate-600/90 max-w-xl mx-auto">
-            Jelajahi beragam alat tulis kantor berkualitas tinggi untuk
-            kebutuhan kerja dan belajar yang optimal.
-          </p>
-        </div>
+    <div style={{ minHeight: "100vh", background: "#fff" }}>
+      <header style={{ padding: "2.5rem 0 1.5rem 0", textAlign: "center" }}>
+        <h1
+          style={{
+            fontWeight: 800,
+            fontSize: "2.2rem",
+            color: "var(--atk-dark)",
+            marginBottom: "0.5rem",
+          }}
+        >
+          Katalog ATK
+        </h1>
+        <p
+          style={{
+            color: "var(--atk-secondary)",
+            fontSize: "1.1rem",
+            maxWidth: 480,
+            margin: "0 auto",
+          }}
+        >
+          Temukan alat tulis kantor berkualitas untuk kebutuhan Anda.
+        </p>
+      </header>
 
-        {/* Filter dan Kontrol Pencarian */}
-        <div className="mb-6 md:mb-8 p-4 bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl z-20 border border-emerald-200/60">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div className="md:col-span-1">
-              <label
-                htmlFor="search-atk"
-                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
-              >
-                <MagnifyingGlassIcon className="inline h-3.5 w-3.5 mr-1 text-slate-500" />
-                Cari Produk
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  id="search-atk"
-                  placeholder="Nama atk, merek, jenis..."
-                  value={searchQuery}
-                  onChange={(e) =>
-                    handleFilterOrSortChange("search", e.target.value)
-                  }
-                  className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-slate-300/80 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white/70 hover:border-slate-400 focus:bg-white placeholder-slate-400/90"
-                />
-                <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="sort-atk"
-                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
-              >
-                <ArrowsUpDownIcon className="inline h-3.5 w-3.5 mr-1 text-slate-500" />
-                Urutkan
-              </label>
-              <div className="relative">
-                <select
-                  id="sort-atk"
-                  value={selectedSort}
-                  onChange={(e) =>
-                    handleFilterOrSortChange("sort", e.target.value)
-                  }
-                  className="appearance-none w-full pl-3 pr-8 py-2.5 text-xs sm:text-sm border border-slate-300/80 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/70 hover:border-slate-400 focus:bg-white cursor-pointer"
-                >
-                  <option value="terbaru">Paling Baru</option>
-                  <option value="harga_asc">Harga: Terendah</option>
-                  <option value="harga_desc">Harga: Tertinggi</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="filter-ketersediaan"
-                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
-              >
-                <FunnelIcon className="inline h-3.5 w-3.5 mr-1 text-slate-500" />
-                Ketersediaan
-              </label>
-              <div className="relative">
-                <select
-                  id="filter-ketersediaan"
-                  value={selectedAvailability}
-                  onChange={(e) =>
-                    handleFilterOrSortChange("availability", e.target.value)
-                  }
-                  className="appearance-none w-full pl-3 pr-8 py-2.5 text-xs sm:text-sm border border-slate-300/80 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white/70 hover:border-slate-400 focus:bg-white cursor-pointer"
-                >
-                  <option value="">Semua Status</option>
-                  <option value="Tersedia">Tersedia</option>
-                  <option value="Habis">Stok Habis</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
+      <div className="container mx-auto px-4 sm:px-5 lg:px-6 py-4 md:py-6">
+        <div className="mb-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <input
+            type="text"
+            placeholder="Cari produk, merek, atau kategori..."
+            value={filters.search}
+            onChange={(e) => handleFilterOrSortChange("search", e.target.value)}
+            style={{
+              border: "1px solid #eee",
+              borderRadius: 12,
+              padding: "0.75rem 1rem",
+              fontSize: 15,
+              width: "100%",
+              maxWidth: 340,
+              background: "#fafafa",
+              color: "var(--atk-dark)",
+            }}
+          />
+          <div className="flex gap-2 items-center">
+            <select
+              value={filters.sort}
+              onChange={(e) => handleFilterOrSortChange("sort", e.target.value)}
+              style={{
+                border: "1px solid #eee",
+                borderRadius: 10,
+                padding: "0.5rem 1rem",
+                fontSize: 15,
+                background: "#fafafa",
+                color: "var(--atk-dark)",
+              }}
+            >
+              <option value="latest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+              <option value="price_low">Harga Terendah</option>
+              <option value="price_high">Harga Tertinggi</option>
+              <option value="name_asc">Nama A-Z</option>
+              <option value="name_desc">Nama Z-A</option>
+            </select>
+            <button
+              onClick={resetAllFilters}
+              style={{
+                border: "1px solid var(--atk-primary)",
+                background: "none",
+                color: "var(--atk-primary)",
+                borderRadius: 10,
+                padding: "0.5rem 1.2rem",
+                fontWeight: 500,
+                fontSize: 15,
+                cursor: "pointer",
+              }}
+            >
+              Reset
+            </button>
           </div>
         </div>
 
-        {error && (
-          <div className="mb-5 p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-700 rounded-xl shadow-sm flex items-start">
-            <ExclamationTriangleIcon className="h-5 w-5 text-rose-500 mr-3 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-rose-800 text-sm">
-                Oops, Terjadi Kesalahan!
-              </h3>
-              <p className="text-xs sm:text-sm">{error}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {loading
-            ? Array.from({ length: paginationData?.meta?.per_page || 12 }).map(
-                (_, index) => <SkeletonCard key={`skeleton-${index}`} />
-              )
+            ? Array.from({ length: meta?.per_page || 12 }).map((_, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: "#fafafa",
+                    borderRadius: 16,
+                    border: "1px solid #eee",
+                    height: 220,
+                  }}
+                />
+              ))
             : atkList.length > 0
-            ? atkList.map((atk) => <AtkCard key={atk.id} atk={atk} />)
-            : !error && (
-                <div className="col-span-full text-center py-12 sm:py-16">
-                  <InboxIcon className="mx-auto h-16 w-16 md:h-20 md:w-20 text-slate-400/70" />
-                  <h3 className="mt-4 text-lg md:text-xl font-semibold text-slate-700/90">
-                    Yah, Produk Tidak Ditemukan
-                  </h3>
-                  <p className="mt-1.5 text-xs sm:text-sm text-slate-500/80 max-w-sm mx-auto">
-                    Coba kata kunci lain atau ubah filter untuk menemukan yang
-                    Anda cari.
-                  </p>
-                  {(searchQuery ||
-                    selectedSort !== "terbaru" ||
-                    selectedAvailability) && (
+            ? atkList.map((atk) => (
+                <div
+                  key={atk.id}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #eee",
+                    borderRadius: 16,
+                    padding: 18,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    minHeight: 220,
+                  }}
+                >
+                  <img
+                    src={
+                      atk?.gambar_utama ||
+                      "https://placehold.co/300x200/eee/ccc?text=Gambar"
+                    }
+                    alt={atk?.nama_atk || "ATK"}
+                    style={{
+                      width: "100%",
+                      height: 120,
+                      objectFit: "cover",
+                      borderRadius: 10,
+                      marginBottom: 10,
+                      background: "#f5f5f5",
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 16,
+                      color: "var(--atk-dark)",
+                      marginBottom: 2,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {atk?.nama_atk || atk?.nama}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--atk-secondary)",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {atk?.kategori?.nama_kategori || "-"}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "var(--atk-primary)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {formatRupiah(atk?.harga)}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
                     <button
-                      onClick={resetAllFilters}
-                      className="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 ease-in-out text-xs sm:text-sm"
+                      onClick={() =>
+                        presenter.handleNavigateToDetail(navigate, atk)
+                      }
+                      style={{
+                        flex: 1,
+                        border: "1px solid #eee",
+                        background: "#fafafa",
+                        color: "var(--atk-dark)",
+                        borderRadius: 8,
+                        padding: "0.5rem 0",
+                        fontWeight: 500,
+                        fontSize: 14,
+                        cursor: "pointer",
+                      }}
                     >
-                      Reset Filter & Pencarian
+                      Detail
                     </button>
-                  )}
+                    <button
+                      onClick={() => presenter.handleAddToCart(atk.id, 1)}
+                      style={{
+                        flex: 1,
+                        border: "none",
+                        background: "var(--atk-primary)",
+                        color: "#fff",
+                        borderRadius: 8,
+                        padding: "0.5rem 0",
+                        fontWeight: 600,
+                        fontSize: 14,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Beli
+                    </button>
+                  </div>
+                </div>
+              ))
+            : !error && (
+                <div
+                  className="col-span-full text-center py-16"
+                  style={{ color: "var(--atk-secondary)" }}
+                >
+                  <div
+                    style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}
+                  >
+                    Produk Tidak Ditemukan
+                  </div>
+                  <div style={{ fontSize: 15, marginBottom: 18 }}>
+                    Coba kata kunci lain atau reset filter.
+                  </div>
+                  <button
+                    onClick={resetAllFilters}
+                    style={{
+                      border: "1px solid var(--atk-primary)",
+                      background: "none",
+                      color: "var(--atk-primary)",
+                      borderRadius: 10,
+                      padding: "0.5rem 1.2rem",
+                      fontWeight: 500,
+                      fontSize: 15,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Reset Filter
+                  </button>
                 </div>
               )}
         </div>
 
-        {!loading &&
-          paginationData?.meta &&
-          paginationData.meta.last_page > 1 && (
-            <Pagination
-              meta={paginationData.meta}
-              onPageChange={handlePageChange}
-            />
-          )}
+        {!loading && meta && meta.last_page > 1 && (
+          <nav className="flex justify-center mt-10">
+            <div style={{ display: "flex", gap: 4 }}>
+              {meta.links.map((link, idx) => {
+                if (link.label === "...") {
+                  return (
+                    <span
+                      key={idx}
+                      style={{
+                        padding: "0.5rem 0.9rem",
+                        color: "#bbb",
+                        fontSize: 15,
+                      }}
+                    >
+                      ...
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={idx}
+                    onClick={() =>
+                      link.url &&
+                      handlePageChange(
+                        new URL(link.url).searchParams.get("page")
+                      )
+                    }
+                    disabled={!link.url || link.active}
+                    style={{
+                      padding: "0.5rem 0.9rem",
+                      border: "1px solid #eee",
+                      background: link.active ? "var(--atk-primary)" : "#fff",
+                      color: link.active ? "#fff" : "var(--atk-dark)",
+                      borderRadius: 8,
+                      fontWeight: link.active ? 700 : 500,
+                      fontSize: 15,
+                      cursor: link.url ? "pointer" : "not-allowed",
+                      opacity: link.url ? 1 : 0.5,
+                    }}
+                  >
+                    {link.label.replace(/&laquo;|&raquo;/g, "").trim()}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        )}
       </div>
     </div>
   );

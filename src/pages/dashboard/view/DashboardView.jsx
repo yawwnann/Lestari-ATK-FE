@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import logo from "../../assets/logo.png";
-import atkBg from "../../assets/atk.jpg";
+import logo from "../../../assets/logo.png";
+import atkBg from "../../../assets/atk.jpg";
 import { useNavigate } from "react-router-dom";
 import { DashboardPresenter } from "../presenter/DashboardPresenter";
 import {

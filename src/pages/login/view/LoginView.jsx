@@ -1,6 +1,6 @@
 // src/pages/LoginPage.jsx
 import React, { useState } from "react";
-import logo from "../../assets/logo.png";
+import logo from "../../../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { LoginPresenter } from "../presenter/LoginPresenter";
 

@@ -8,17 +8,19 @@ import {
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import DashboardPage from "./pages/Dashboard";
-import ProfilePage from "./pages/ProfilePage";
-import KatalogPage from "./pages/KatalogPage";
-import DetailAtkPage from "./pages/DetailAtkPage";
-import KeranjangPage from "./pages/KeranjangPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import PaymentPage from "./pages/PaymentPage";
-import PesananPage from "./pages/PesananPage";
-import PesananDetailPage from "./pages/PesananDetailPage";
+
+// Import views dari struktur MVP yang baru
+import LoginView from "./pages/login/view/LoginView";
+import RegisterView from "./pages/register/view/RegisterView";
+import DashboardView from "./pages/dashboard/view/DashboardView";
+import ProfileView from "./pages/profile/view/ProfileView";
+import KatalogView from "./pages/katalog/view/KatalogView";
+import DetailAtkView from "./pages/detailatk/view/DetailAtkView";
+import KeranjangView from "./pages/keranjang/view/KeranjangView";
+import CheckoutView from "./pages/checkout/view/CheckoutView";
+import PaymentView from "./pages/payment/view/PaymentView";
+import PesananView from "./pages/pesanan/view/PesananView";
+import PesananDetailView from "./pages/pesanan/view/PesananDetailView";
 
 import "@fontsource/inter";
 
@@ -40,26 +42,25 @@ function App() {
     <Router>
       <Routes>
         {/* Route tanpa layout utama (misal: halaman autentikasi) */}
-        <Route path="/" element={<LoginPage />} />{" "}
+        <Route path="/" element={<LoginView />} />{" "}
         {/* Halaman landing default */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginView />} />
+        <Route path="/register" element={<RegisterView />} />
         {/* Route dengan layout utama (Navbar & Footer) */}
         <Route element={<MainLayout />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/katalog" element={<KatalogPage />} />
-          {/* <--- DIUBAH: dari /pupuk/:slug ke /atk/:slug */}
-          <Route path="/atk/:slug" element={<DetailAtkPage />} />{" "}
-          {/* <--- Menggunakan DetailAtkPage */}
-          <Route path="/keranjang" element={<KeranjangPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/payment/:orderId" element={<PaymentPage />} />
-          {/* <--- DIUBAH: dari /PesananPage ke /pesanan untuk konsistensi URL */}
-          <Route path="/pesanan" element={<PesananPage />} />
+          <Route path="/dashboard" element={<DashboardView />} />
+          <Route path="/profile" element={<ProfileView />} />
+          <Route path="/katalog" element={<KatalogView />} />
+          {/* Route untuk detail ATK */}
+          <Route path="/atk/:slug" element={<DetailAtkView />} />
+          <Route path="/keranjang" element={<KeranjangView />} />
+          <Route path="/checkout" element={<CheckoutView />} />
+          <Route path="/payment/:orderId" element={<PaymentView />} />
+          {/* Route untuk pesanan */}
+          <Route path="/pesanan" element={<PesananView />} />
           <Route
             path="/pesanan/detail/:orderId"
-            element={<PesananDetailPage />}
+            element={<PesananDetailView />}
           />
         </Route>
       </Routes>
