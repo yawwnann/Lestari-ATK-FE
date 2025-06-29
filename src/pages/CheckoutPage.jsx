@@ -173,7 +173,13 @@ function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50">
+    <div
+      className="min-h-screen"
+      style={{
+        background:
+          "linear-gradient(135deg, #fff 0%, var(--atk-primary) 10%, #fff 100%)",
+      }}
+    >
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="max-w-7xl mx-auto">
           {/* Navigation */}
@@ -189,7 +195,10 @@ function CheckoutPage() {
 
           {/* Header Checkout */}
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
+            <h1
+              className="text-2xl sm:text-3xl font-bold mb-4"
+              style={{ color: "var(--atk-dark)" }}
+            >
               Checkout
             </h1>
             <p className="text-slate-500 mt-1">
@@ -390,7 +399,8 @@ function CheckoutPage() {
                   <button
                     type="submit"
                     disabled={isProcessingOrder || cartItems.length === 0}
-                    className="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full mt-6 text-white font-medium py-3 rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ background: "var(--atk-primary)" }}
                   >
                     {isProcessingOrder ? (
                       <>

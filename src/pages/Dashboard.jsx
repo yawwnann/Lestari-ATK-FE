@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import AtkImage from "../assets/atk.png"; // Ganti gambar ini untuk ATK
+import AtkImage from "../assets/atk.jpg";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../api/apiClient";
 import {

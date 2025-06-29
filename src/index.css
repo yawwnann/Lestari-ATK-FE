@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+:root {
+  --atk-primary: #f7374f;
+  --atk-secondary: #88304e;
+  --atk-tertiary: #522546;
+  --atk-dark: #2c2c2c;
+  --atk-primary-rgb: 247, 55, 79;
+  --atk-secondary-rgb: 136, 48, 78;
+  --atk-tertiary-rgb: 82, 37, 70;
+  --atk-dark-rgb: 44, 44, 44;
+}
+
 body {
   font-family: "Inter", sans-serif;
 }

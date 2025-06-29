@@ -378,7 +378,13 @@ function DetailAtkPage() {
   }
 
   return (
-    <>
+    <div
+      className="min-h-screen"
+      style={{
+        background:
+          "linear-gradient(135deg, #fff 0%, var(--atk-primary) 10%, #fff 100%)",
+      }}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Breadcrumb */}
         <nav className="mb-6">
@@ -649,7 +655,7 @@ function DetailAtkPage() {
           </div>
         </Dialog>
       </Transition>
-    </>
+    </div>
   );
 }
 

@@ -313,7 +313,13 @@ function ProfilePage() {
     return (
       // Wrapper div untuk memastikan Navbar tidak ikut terganti saat state update di page ini
       // Jika Navbar ada di App.js, div ini tidak perlu
-      <div>
+      <div
+        className="min-h-screen"
+        style={{
+          background:
+            "linear-gradient(135deg, #fff 0%, var(--atk-primary) 10%, #fff 100%)",
+        }}
+      >
         <div className="bg-gray-100 min-h-[calc(100vh-4rem)] py-8">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* --- Bagian Atas (Biru - Sama) --- */}
