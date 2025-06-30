@@ -9,7 +9,10 @@ function CartList({
   onRemove,
 }) {
   return (
-    <div style={{ width: "100%", marginBottom: 24 }}>
+    <ul
+      role="list"
+      className="divide-y divide-slate-200 border-t border-b border-slate-200"
+    >
       {items.map((item) => (
         <CartItem
           key={item.id}
@@ -18,9 +21,10 @@ function CartList({
           isRemoving={removingItemId === item.id}
           onUpdateQuantity={onUpdateQuantity}
           onRemove={onRemove}
+          gambar_url={item.atk.gambar_utama_url}
         />
       ))}
-    </div>
+    </ul>
   );
 }
 

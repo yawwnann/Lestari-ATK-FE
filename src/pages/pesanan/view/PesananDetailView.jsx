@@ -1,7 +1,7 @@
 // src/pages/PesananDetailPage.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import apiClient from "../../../api/apiClient"; // Sesuaikan path apiClient Anda
 import {
   ArrowLeftIcon,
@@ -22,37 +22,72 @@ import {
   PhotoIcon,
   CubeTransparentIcon, // Untuk Nomor Resi
   CheckBadgeIcon, // Untuk tombol Tandai Selesai
+  BanknotesIcon, // Untuk Rincian Pembayaran
+  ReceiptPercentIcon, // Untuk status
+  TruckIcon, // Untuk Pengiriman
 } from "@heroicons/react/24/outline";
 import { CheckCircleIcon as SolidCheckCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { id as idLocale } from "date-fns/locale";
 
-const getStatusPembayaranColor = (status) => {
-  // Pastikan nilai status dari API Anda konsisten dengan case di sini
+const getStatusPesananColor = (status) => {
   const lowerStatus = status?.toLowerCase();
   switch (lowerStatus) {
+    case "baru":
     case "pending":
-    case "menunggu_pembayaran": // Alias jika ada
-      return "bg-yellow-100 text-yellow-700 ring-1 ring-inset ring-yellow-200";
-    case "paid":
-    case "settlement":
-    case "capture":
-    case "lunas": // Jika status pembayaran juga bisa "lunas"
-      return "bg-green-100 text-green-700 ring-1 ring-inset ring-green-200";
-    case "challenge":
-      return "bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-200";
-    case "failure":
-    case "failed":
-    case "deny":
-    case "cancel":
-    case "gagal":
-    case "expire":
-    case "expired":
-      return "bg-red-100 text-red-700 ring-1 ring-inset ring-red-200";
+      return {
+        bg: "bg-blue-100",
+        text: "text-blue-700",
+        ring: "ring-blue-200",
+        icon: ShoppingBagIcon,
+      };
+    case "menunggu_konfirmasi_pembayaran":
+      return {
+        bg: "bg-yellow-100",
+        text: "text-yellow-800",
+        ring: "ring-yellow-300",
+        icon: ClockIcon,
+      };
+    case "lunas":
+    case "diproses":
+      return {
+        bg: "bg-atk-secondary/10",
+        text: "text-atk-secondary",
+        ring: "ring-atk-secondary/20",
+        icon: ArrowPathIcon,
+      };
+    case "dikirim":
+      return {
+        bg: "bg-atk-tertiary/10",
+        text: "text-atk-tertiary",
+        ring: "ring-atk-tertiary/20",
+        icon: TruckIcon,
+      };
+    case "selesai":
+      return {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        ring: "ring-green-200",
+        icon: SolidCheckCircleIcon,
+      };
+    case "dibatalkan":
+    case "batal":
+      return {
+        bg: "bg-red-100",
+        text: "text-red-700",
+        ring: "ring-red-200",
+        icon: XCircleIcon,
+      };
     default:
-      return "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200";
+      return {
+        bg: "bg-slate-100",
+        text: "text-slate-700",
+        ring: "ring-slate-200",
+        icon: InformationCircleIcon,
+      };
   }
 };
+
 const formatRupiah = (angka) => {
   if (angka === null || angka === undefined || isNaN(Number(angka)))
     return "Rp 0";
@@ -65,62 +100,24 @@ const formatRupiah = (angka) => {
 };
 
 const StatusPesananDisplay = ({ status }) => {
-  let colorClass = "bg-gray-100 text-gray-800";
-  let Icon = InformationCircleIcon;
-  let text = status || "Tidak Diketahui";
+  const { bg, text, ring, icon: Icon } = getStatusPesananColor(status);
   const lowerStatus = status?.toLowerCase();
+  const formattedText = status
+    ? status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+    : "Tidak Diketahui";
 
-  switch (lowerStatus) {
-    case "baru":
-    case "pending":
-      colorClass = "bg-blue-100 text-blue-800";
-      Icon = ShoppingBagIcon;
-      break;
-    case "menunggu_konfirmasi_pembayaran":
-      colorClass =
-        "bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-300";
-      Icon = ClockIcon;
-      break;
-    case "lunas":
-      colorClass =
-        "bg-green-100 text-green-700 ring-1 ring-inset ring-green-200";
-      Icon = ShieldCheckIcon;
-      break;
-    case "diproses":
-      colorClass = "bg-yellow-100 text-yellow-700";
-      Icon = ArrowPathIcon;
-      break;
-    case "dikirim":
-      colorClass = "bg-cyan-100 text-cyan-700";
-      Icon = ShoppingBagIcon;
-      break;
-    case "selesai":
-      colorClass = "bg-green-100 text-green-700";
-      Icon = SolidCheckCircleIcon;
-      break;
-    case "dibatalkan":
-    case "batal":
-      colorClass = "bg-red-100 text-red-700";
-      Icon = XCircleIcon;
-      break;
-    default:
-      text = "N/A";
-      Icon = InformationCircleIcon;
-      break;
-  }
   return (
-    <span
-      className={`px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full ${colorClass}`}
+    <div
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${bg} ${text} ring-1 ring-inset ${ring}`}
     >
       <Icon
-        className={`h-4 w-4 mr-1.5 ${
-          Icon === ArrowPathIcon && lowerStatus === "diproses"
-            ? "animate-spin"
-            : ""
+        className={`h-5 w-5 ${
+          (lowerStatus === "diproses" || lowerStatus === "lunas") &&
+          "animate-spin"
         }`}
       />
-      {text.charAt(0).toUpperCase() + text.slice(1)}
-    </span>
+      <span>{formattedText}</span>
+    </div>
   );
 };
 
@@ -178,436 +175,373 @@ const StatusPembayaranDisplay = ({ status }) => {
 };
 
 const DetailSkeleton = () => (
-  <div className="animate-pulse space-y-8">
-    <div className="h-8 bg-gray-300 rounded w-1/2 mb-6"></div>
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-      <div className="space-y-3">
-        <div className="flex justify-between">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        </div>
-        <div className="flex justify-between">
-          <div className="h-4 bg-gray-200 rounded w-1/5"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-        </div>
-        <div className="flex justify-between">
-          <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-          <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-        </div>
-        <div className="flex justify-between">
-          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-6 bg-gray-200 rounded w-1/5"></div>
-        </div>
-      </div>
-    </div>
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-      <div className="space-y-3">
-        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        <div className="h-12 bg-gray-200 rounded w-full"></div>
-      </div>
-    </div>
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
-      <div className="border-t border-gray-200 pt-4 space-y-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-200 rounded"></div>
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+  <div className="animate-pulse">
+    <div className="h-8 w-3/4 rounded-md bg-slate-200 mb-8"></div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Kolom Kiri */}
+      <div className="lg:col-span-2 space-y-8">
+        {/* Card Produk */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-lg">
+          <div className="p-6 border-b border-slate-200">
+            <div className="h-6 w-1/3 rounded-md bg-slate-200"></div>
           </div>
-          <div className="h-4 bg-gray-200 rounded w-1/6"></div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-200 rounded"></div>
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+          <div className="p-6 space-y-6">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <div className="w-24 h-24 rounded-lg bg-slate-200"></div>
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 w-3/4 rounded-md bg-slate-200"></div>
+                  <div className="h-4 w-1/2 rounded-md bg-slate-200"></div>
+                </div>
+                <div className="h-5 w-1/4 rounded-md bg-slate-200"></div>
+              </div>
+            ))}
           </div>
-          <div className="h-4 bg-gray-200 rounded w-1/5"></div>
         </div>
       </div>
-      <div className="h-6 bg-gray-300 rounded w-1/3 ml-auto mt-4"></div>
+      {/* Kolom Kanan */}
+      <div className="lg:col-span-1 space-y-8">
+        {/* Card Info Pelanggan */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-lg">
+          <div className="p-6 border-b border-slate-200">
+            <div className="h-6 w-1/2 rounded-md bg-slate-200"></div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="h-4 w-full rounded-md bg-slate-200"></div>
+            <div className="h-4 w-3/4 rounded-md bg-slate-200"></div>
+            <div className="h-4 w-5/6 rounded-md bg-slate-200"></div>
+          </div>
+        </div>
+        {/* Card Rincian Pembayaran */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-lg">
+          <div className="p-6 border-b border-slate-200">
+            <div className="h-6 w-2/3 rounded-md bg-slate-200"></div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="h-4 w-full rounded-md bg-slate-200"></div>
+            <div className="h-4 w-3/4 rounded-md bg-slate-200"></div>
+            <div className="h-5 w-full rounded-md bg-slate-300 mt-2"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 );
 
-const DetailItem = ({ label, value, icon: IconComponent, className = "" }) => (
-  <div className={`sm:col-span-1 ${className}`}>
-    <dt className="text-xs sm:text-sm text-gray-500 flex items-center">
-      {IconComponent && (
-        <IconComponent className="h-4 w-4 mr-1.5 text-gray-400" />
-      )}
-      {label}
-    </dt>
-    <dd className="mt-1 text-sm sm:text-base text-gray-900 font-medium">
-      {value || "-"}
-    </dd>
+const InfoCard = ({ title, icon, children }) => (
+  <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+    <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50">
+      <div className="flex items-center gap-3">
+        {React.createElement(icon, { className: "h-6 w-6 text-atk-primary" })}
+        <h3 className="text-lg font-bold text-atk-dark">{title}</h3>
+      </div>
+    </div>
+    <div className="p-5 sm:p-6">{children}</div>
+  </div>
+);
+
+const InfoRow = ({ label, value, children, className = "" }) => (
+  <div
+    className={`flex justify-between items-start py-2.5 ${className} border-b border-slate-100 last:border-b-0`}
+  >
+    <span className="text-sm text-slate-500">{label}</span>
+    {children || (
+      <span className="text-sm font-semibold text-atk-dark text-right">
+        {value || "-"}
+      </span>
+    )}
   </div>
 );
 
 function PesananDetailPage() {
-  const { orderId } = useParams();
-  const navigate = useNavigate();
+  const { orderId: id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isMarkingAsDone, setIsMarkingAsDone] = useState(false);
-  const [markAsDoneError, setMarkAsDoneError] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
 
-  const fetchOrderDetail = useCallback(async () => {
-    if (!orderId) {
-      setError("ID Pesanan tidak valid.");
-      setLoading(false);
-      return;
-    }
+  const fetchOrderDetail = useCallback(async (orderId) => {
+    console.log(
+      `[DEBUG] Memulai fetchOrderDetail untuk ID: ${orderId}. URL: /api/pesanan/${orderId}`
+    );
     setLoading(true);
     setError(null);
-    setMarkAsDoneError(null); // Reset error aksi sebelumnya
+    setUpdateError(null);
     try {
       const response = await apiClient.get(`/pesanan/${orderId}`);
-      if (response.data?.data) {
+      console.log("[DEBUG] Respon mentah dari API:", response);
+
+      if (response.data && response.data.data) {
+        console.log("[DEBUG] Data pesanan DITERIMA:", response.data.data);
         setOrder(response.data.data);
       } else {
-        setError("Gagal memuat detail pesanan: Format data tidak valid.");
+        console.warn(
+          "[DEBUG] Respon diterima, tapi format data tidak sesuai atau data kosong:",
+          response.data
+        );
         setOrder(null);
+        setError("Format data pesanan tidak sesuai.");
       }
     } catch (err) {
-      console.error(`Gagal memuat detail pesanan ID ${orderId}:`, err);
+      console.error("[DEBUG] Gagal total saat fetch:", err);
       if (err.response) {
-        if (err.response.status === 404) {
-          setError("Pesanan tidak ditemukan.");
-        } else if (err.response.status === 401 || err.response.status === 403) {
-          setError(
-            "Anda tidak diizinkan melihat pesanan ini. Silakan login ulang."
-          );
-          setTimeout(
-            () =>
-              navigate("/login", {
-                replace: true,
-                state: { from: `/pesanan/detail/${orderId}` },
-              }),
-            3000
-          );
-        } else {
-          setError(
-            `Gagal memuat detail pesanan. Server: ${
-              err.response.statusText || "Error"
-            }`
-          );
-        }
+        console.error("[DEBUG] Error response data:", err.response.data);
+        console.error("[DEBUG] Error response status:", err.response.status);
+      }
+      if (err.response?.status === 404) {
+        setError("Pesanan tidak ditemukan.");
+      } else if (err.response?.status === 403) {
+        setError("Anda tidak memiliki izin untuk melihat pesanan ini.");
       } else {
-        setError("Gagal memuat detail pesanan. Periksa koneksi Anda.");
+        setError("Terjadi kesalahan saat mengambil data. Silakan coba lagi.");
       }
       setOrder(null);
     } finally {
+      console.log("[DEBUG] Proses fetch selesai, setLoading(false).");
       setLoading(false);
     }
-  }, [orderId, navigate]);
+  }, []);
 
   useEffect(() => {
-    fetchOrderDetail();
-  }, [fetchOrderDetail]);
-
-  const handleImageError = (e) => {
-    if (!e.target.src.endsWith("/placeholder-image.png")) {
-      e.target.onerror = null;
-      e.target.src = "/placeholder-image.png";
-    } else {
-      e.target.onerror = null;
+    console.log(`[DEBUG] useEffect dijalankan dengan id: ${id}`);
+    if (id) {
+      fetchOrderDetail(id);
     }
-  };
+  }, [id, fetchOrderDetail]);
 
   const handleMarkAsDone = async () => {
-    if (!order || order.status?.toLowerCase() !== "dikirim") {
-      alert(
-        "Pesanan ini tidak dalam status 'Dikirim' atau data pesanan tidak ada."
-      );
-      return;
-    }
-    if (
-      !window.confirm(
-        "Apakah Anda yakin ingin menandai pesanan ini sudah Anda terima / selesai?"
-      )
-    ) {
-      return;
-    }
-    setIsMarkingAsDone(true);
-    setMarkAsDoneError(null);
+    setIsUpdating(true);
+    setUpdateError(null);
     try {
-      const response = await apiClient.put(
-        `/pesanan/${order.id}/tandai-selesai`
-      );
+      const response = await apiClient.post(`/pesanan/${id}/tandai-selesai`);
       if (response.data && response.data.data) {
         setOrder(response.data.data);
-        alert("Status pesanan berhasil diperbarui menjadi Selesai!");
       } else {
-        throw new Error(
-          response.data?.message || "Gagal memperbarui status pesanan."
-        );
+        throw new Error("Gagal memperbarui status pesanan dari server.");
       }
     } catch (err) {
-      const errMsg =
-        err.response?.data?.message || err.message || "Terjadi kesalahan.";
-      setMarkAsDoneError(errMsg);
-      alert(`Error: ${errMsg}`);
       console.error("Gagal menandai pesanan selesai:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        "Gagal terhubung ke server. Silakan coba lagi.";
+      setUpdateError(errorMessage);
     } finally {
-      setIsMarkingAsDone(false);
+      setIsUpdating(false);
     }
   };
 
-  return (
-    <div className="bg-slate-100 min-h-screen py-8 sm:py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-        <Link
-          to="/Pesanan"
-          className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 mb-6 group"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-1.5 transition-transform duration-150 group-hover:-translate-x-1" />
-          Kembali ke Riwayat Pesanan
-        </Link>
+  const handleImageError = (e) => {
+    e.target.onerror = null; // mencegah loop tak terbatas jika gambar placeholder juga gagal
+    e.target.src = "/placeholder-image.png"; // Ganti dengan path gambar placeholder Anda
+  };
 
-        {loading ? (
-          <DetailSkeleton />
-        ) : error ? (
-          <div className="text-center py-10 bg-white border border-red-200 rounded-xl shadow-lg">
-            <XCircleIcon className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-700 mb-2">
-              Oops! Terjadi Kesalahan
-            </h2>
-            <p className="text-gray-600">{error}</p>
-          </div>
-        ) : !order ? (
-          <div className="text-center py-10 bg-white rounded-xl shadow-lg">
-            <InformationCircleIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              Pesanan Tidak Ditemukan
-            </h2>
-            <p className="text-gray-600">
-              Detail pesanan yang Anda cari tidak dapat ditampilkan.
+  const formatDate = (dateString) => {
+    if (!dateString) return { tanggal: "N/A", jam: "" };
+    try {
+      const dateObj = new Date(dateString);
+      if (isNaN(dateObj.getTime())) {
+        // Handle invalid date string
+        return { tanggal: "Format Tanggal Salah", jam: "" };
+      }
+      return {
+        tanggal: format(dateObj, "dd MMMM yyyy", { locale: idLocale }),
+        jam: format(dateObj, "HH:mm", { locale: idLocale }),
+      };
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return { tanggal: "Error", jam: "" };
+    }
+  };
+
+  if (loading) return <DetailSkeleton />;
+  if (error)
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+        <ExclamationTriangleIcon className="h-16 w-16 text-red-400 mb-4" />
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          Gagal Memuat Detail Pesanan
+        </h2>
+        <p className="text-slate-500 max-w-md">{error}</p>
+        <button
+          onClick={() => fetchOrderDetail(id)}
+          className="mt-6 inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-atk-primary hover:bg-atk-secondary focus:outline-none"
+        >
+          <ArrowPathIcon className="h-5 w-5 mr-2" /> Coba Lagi
+        </button>
+        {updateError && (
+          <p className="mt-4 text-sm text-red-600 bg-red-100 p-3 rounded-md">
+            {updateError}
+          </p>
+        )}
+      </div>
+    );
+  if (!order)
+    return (
+      <div className="text-center p-10">
+        Pesanan tidak ditemukan atau Anda tidak memiliki akses.
+      </div>
+    );
+
+  const { tanggal: tanggalPesan, jam: jamPesan } = formatDate(
+    order.tanggal_pesanan || order.created_at
+  );
+
+  // Perhitungan Subtotal, Ongkir, dll. (Contoh)
+  const subtotal = order.items.reduce(
+    (acc, item) => acc + (item.harga_saat_pesanan || 0) * (item.jumlah || 0),
+    0
+  );
+  const ongkir = 15000; // Contoh statis
+  const totalPembayaran = order.total_harga || subtotal + ongkir;
+
+  return (
+    <div className="bg-slate-50 min-h-screen py-10 sm:py-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div>
+            <Link
+              to="/pesanan"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-atk-secondary hover:text-atk-primary transition-colors"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+              Kembali ke Riwayat Pesanan
+            </Link>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-atk-dark mt-2">
+              Detail Pesanan
+            </h1>
+            <p className="text-slate-500 mt-1">
+              ID Pesanan:{" "}
+              <span className="font-semibold text-atk-tertiary">
+                #{order.id}
+              </span>
             </p>
           </div>
-        ) : (
-          <div className="space-y-6 sm:space-y-8">
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 mb-6 border-b border-slate-200">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    Detail Pesanan
-                  </h1>
-                  <p className="text-sm text-gray-500 mt-1">
-                    ID Pesanan: <span className="font-mono">#{order.id}</span>
-                  </p>
-                </div>
-                <div className="mt-3 sm:mt-0">
-                  <StatusPesananDisplay status={order.status} />
-                </div>
-              </div>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                <DetailItem
-                  label="Tanggal Pesan"
-                  value={format(
-                    new Date(
-                      order.tanggal_pesan || order.created_at || Date.now()
-                    ),
-                    "EEEE, dd MMMM yyyy, HH:mm",
-                    { locale: id }
-                  )}
-                  icon={CalendarDaysIcon}
-                  className="sm:col-span-2"
-                />
-                <span
-                  className={`px-3 w-20 text-center h-10 py-1 inline-flex items-center justify-center text-xs leading-5 font-semibold rounded-full ${getStatusPembayaranColor(
-                    order.status_pembayaran // Pastikan field ini ada dari API
-                  )}`}
-                >
-                  {order.status_pembayaran
-                    ? order.status_pembayaran.charAt(0).toUpperCase() +
-                      order.status_pembayaran.slice(1).toLowerCase()
-                    : "N/A"}
-                </span>
+          <div className="flex items-center gap-4">
+            <StatusPesananDisplay status={order.status} />
+          </div>
+        </div>
 
-                <DetailItem
-                  label="Metode Pembayaran"
-                  value={order.metode_pembayaran || "-"}
-                  icon={TagIcon}
-                />
-                {order.nomor_resi && (
-                  <DetailItem
-                    label="Nomor Resi Pengiriman"
-                    value={order.nomor_resi}
-                    icon={CubeTransparentIcon}
-                    className="sm:col-span-2"
-                  />
-                )}
-              </dl>
-            </div>
-
-            {order.payment_proof_url && (
-              <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 flex items-center">
-                  <PhotoIcon className="h-6 w-6 mr-2 text-indigo-600" /> Bukti
-                  Pembayaran
-                </h2>
-                <a
-                  href={order.payment_proof_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <img
-                    src={order.payment_proof_url}
-                    alt={`Bukti Pembayaran Pesanan ${order.id}`}
-                    className="w-full h-auto max-h-96 rounded-md border border-gray-300 shadow-sm object-contain bg-gray-50"
-                    style={{ display: "block", margin: "0 auto" }}
-                    onError={handleImageError}
-                  />
-                </a>
-                <p className="text-center mt-3">
-                  <a
-                    href={order.payment_proof_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline"
+        {/* Konten Utama */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+          {/* Kolom Kiri: Rincian Produk & Pengiriman */}
+          <div className="lg:col-span-3 space-y-8">
+            <InfoCard title="Produk Dipesan" icon={ShoppingBagIcon}>
+              <div className="divide-y divide-slate-100">
+                {(order.items || []).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex gap-4 py-4 first:pt-0 last:pb-0"
                   >
-                    Lihat gambar ukuran penuh
-                  </a>
-                </p>
+                    <img
+                      src={item.gambar_utama_url}
+                      alt={item.nama_atk}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover bg-slate-100 flex-shrink-0"
+                      onError={handleImageError}
+                      loading="lazy"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm sm:text-base font-bold text-atk-dark truncate">
+                        {item.nama_atk || "Produk"}
+                      </p>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                        {item.jumlah || 0} x{" "}
+                        {formatRupiah(item.harga_saat_pesanan || 0)}
+                      </p>
+                    </div>
+                    <p className="text-sm sm:text-base font-semibold text-atk-dark whitespace-nowrap">
+                      {formatRupiah(
+                        (item.harga_saat_pesanan || 0) * (item.jumlah || 0)
+                      )}
+                    </p>
+                  </div>
+                ))}
               </div>
-            )}
+            </InfoCard>
 
-            <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4 border-b pb-3">
-                Info Pelanggan & Pengiriman
-              </h2>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                <DetailItem
-                  label="Nama Penerima"
-                  value={order.nama_pelanggan}
-                  icon={UserCircleIcon}
-                />
-                <DetailItem
-                  label="Nomor WhatsApp"
-                  value={order.nomor_whatsapp}
-                  icon={PhoneIcon}
-                />
-                <div className="sm:col-span-2">
-                  <dt className="text-xs sm:text-sm text-gray-500 flex items-center">
-                    <MapPinIcon className="h-4 w-4 mr-1.5 text-gray-400" />{" "}
-                    Alamat Pengiriman
-                  </dt>
-                  <dd className="mt-1 text-sm sm:text-base text-gray-900 font-medium whitespace-pre-line">
-                    {order.alamat_pengiriman || "-"}
-                  </dd>
-                </div>
-                {order.catatan && (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs sm:text-sm text-gray-500 flex items-center">
-                      <PencilIcon className="h-4 w-4 mr-1.5 text-gray-400" />{" "}
-                      Catatan Pelanggan
-                    </dt>
-                    <dd className="mt-1 text-sm sm:text-base text-gray-900 font-medium whitespace-pre-line">
-                      {order.catatan}
-                    </dd>
-                  </div>
-                )}
-                {order.user && (
-                  <div className="sm:col-span-2 pt-4 border-t mt-4">
-                    <dt className="text-xs sm:text-sm text-gray-500">
-                      Akun Pemesan
-                    </dt>
-                    <dd className="mt-1 text-sm sm:text-base text-gray-900 font-medium">
-                      {order.user.name} ({order.user.email})
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <h2 className="text-xl font-semibold text-gray-800 px-6 sm:px-8 pt-6 pb-4 border-b border-slate-200">
-                Item Dipesan
-              </h2>
-              <ul role="list" className="divide-y divide-slate-200">
-                {order.items && order.items.length > 0 ? (
-                  order.items.map((item, index) => {
-                    // const imageUrl =
-                    //   item.gambar_utama_url || "/placeholder-image.png";
-                    return (
-                      <li
-                        key={item.id || `item-idx-${index}`}
-                        className="flex flex-col sm:flex-row py-4 px-6 sm:px-8 hover:bg-slate-50/50 transition-colors"
-                      >
-                        <div className="flex-shrink-0 h-24 w-24 sm:h-32 sm:w-32">
-                          <img
-                            src={item.gambar_utama}
-                            alt={item.nama_atk || "Gambar ATK"}
-                            className="w-16 h-16 rounded-lg object-cover bg-slate-100"
-                            loading="lazy"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-slate-800 truncate">
-                            {item.nama_atk || "Nama Item Tidak Ada"}
-                          </h4>
-                          <p className="text-sm text-slate-500">
-                            {item.jumlah} x{" "}
-                            {formatRupiah(item.harga_saat_pesanan)}
-                          </p>
-                        </div>
-                        <div className="text-sm font-medium text-slate-800">
-                          {formatRupiah(item.harga_saat_pesanan * item.jumlah)}
-                        </div>
-                        <Link
-                          to={`/atk/${item.slug}`}
-                          className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-                        >
-                          Lihat Detail
-                        </Link>
-                      </li>
-                    );
-                  })
+            <InfoCard title="Info Pengiriman" icon={TruckIcon}>
+              <InfoRow label="Kurir" value="JNE Express (Contoh)" />
+              <InfoRow label="Nomor Resi">
+                {order.nomor_resi ? (
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-atk-tertiary bg-atk-tertiary/10 px-2 py-1 rounded-md">
+                    <CubeTransparentIcon className="h-4 w-4" />
+                    {order.nomor_resi}
+                  </span>
                 ) : (
-                  <li className="px-6 sm:px-8 py-6 text-center text-gray-500">
-                    <ShoppingBagIcon className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-                    Tidak ada item dalam pesanan ini.
-                  </li>
+                  <span className="text-sm text-slate-400 italic">
+                    Belum tersedia
+                  </span>
                 )}
-              </ul>
-              <div className="border-t border-slate-200 px-6 sm:px-8 py-5 bg-slate-50">
-                <div className="flex justify-between text-lg font-bold text-gray-900">
-                  <p>Total Pesanan</p>
-                  <p className="text-indigo-700">
-                    {formatRupiah(order.total_harga)}
-                  </p>
-                </div>
+              </InfoRow>
+              <InfoRow label="Alamat Pengiriman" />
+              <div className="text-sm text-slate-600 pt-2">
+                <p className="font-semibold">{order.nama_pelanggan}</p>
+                <p>{order.nomor_whatsapp}</p>
+                <p>{order.alamat_pengiriman}</p>
               </div>
-            </div>
+            </InfoCard>
+          </div>
 
-            {order.status?.toLowerCase() === "dikirim" && (
-              <div className="mt-8 text-center">
+          {/* Kolom Kanan: Rincian Pembayaran, Pelanggan, Aksi */}
+          <div className="lg:col-span-2 space-y-8">
+            <InfoCard title="Rincian Pembayaran" icon={BanknotesIcon}>
+              <InfoRow label="Subtotal Produk" value={formatRupiah(subtotal)} />
+              <InfoRow label="Ongkos Kirim" value={formatRupiah(ongkir)} />
+              <InfoRow
+                label="Total Pembayaran"
+                value={formatRupiah(totalPembayaran)}
+                className="!font-extrabold !text-lg !text-atk-primary"
+              />
+              <InfoRow
+                label="Metode Pembayaran"
+                value={order.metode_pembayaran || "N/A"}
+              />
+              <InfoRow label="Status Pembayaran">
+                <StatusPembayaranDisplay status={order.status_pembayaran} />
+              </InfoRow>
+            </InfoCard>
+
+            <InfoCard title="Informasi Pelanggan" icon={UserCircleIcon}>
+              <InfoRow label="Nama" value={order.nama_pelanggan} />
+              <InfoRow label="No. WhatsApp" value={order.nomor_whatsapp} />
+              <InfoRow
+                label="Tanggal Pesan"
+                value={`${tanggalPesan}, ${jamPesan} WIB`}
+              />
+            </InfoCard>
+
+            {/* Tombol Aksi */}
+            <div className="space-y-3">
+              {order.status === "dikirim" && (
                 <button
                   onClick={handleMarkAsDone}
-                  disabled={isMarkingAsDone}
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-atk-primary text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-atk-secondary transition-all"
+                  disabled={isUpdating}
                 >
-                  {isMarkingAsDone ? (
-                    <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" />
+                  {isUpdating ? (
+                    <ArrowPathIcon className="h-5 w-5 animate-spin" />
                   ) : (
-                    <CheckBadgeIcon className="h-5 w-5 mr-2" />
+                    <CheckBadgeIcon className="h-6 w-6" />
                   )}
-                  Pesanan Sudah Diterima / Selesai
+                  Tandai Pesanan Selesai
                 </button>
-                {markAsDoneError && (
-                  <p className="mt-2 text-sm text-red-600">{markAsDoneError}</p>
-                )}
-              </div>
-            )}
+              )}
+              {order.status === "baru" && (
+                <Link
+                  to={`/payment/${order.id}`}
+                  className="w-full flex items-center justify-center gap-2 bg-green-500 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-green-600 transition-all"
+                >
+                  <BanknotesIcon className="h-6 w-6" />
+                  Lanjutkan Pembayaran
+                </Link>
+              )}
+              <button className="w-full border border-slate-300 text-atk-dark font-semibold px-6 py-3 rounded-lg hover:bg-slate-100 transition-colors">
+                Hubungi Penjual
+              </button>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

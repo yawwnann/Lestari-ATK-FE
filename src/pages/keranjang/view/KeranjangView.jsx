@@ -10,6 +10,7 @@ import {
   CreditCardIcon,
   ArrowPathIcon,
   ArrowLeftIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -21,7 +22,7 @@ import CartList from "./CartList";
 
 const formatRupiah = (angka) => {
   const number = typeof angka === "string" ? parseInt(angka, 10) : angka;
-  if (isNaN(number) || number === null || number === undefined) return "Rp -";
+  if (isNaN(number) || number === null || number === undefined) return "Rp 0";
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -285,226 +286,189 @@ const CartItemSkeleton = () => (
   </div>
 );
 
+// --- Komponen Skeleton ---
+const CartSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 xl:gap-x-16">
+      <div className="lg:col-span-7">
+        <div className="h-8 w-1/3 bg-slate-200 rounded-md mb-6"></div>
+        <div className="space-y-4">
+          {[...Array(2)].map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-4 p-4 border border-slate-200 rounded-lg"
+            >
+              <div className="w-24 h-24 bg-slate-200 rounded-md"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-3/4 bg-slate-200 rounded-md"></div>
+                <div className="h-4 w-1/4 bg-slate-200 rounded-md"></div>
+                <div className="h-6 w-1/2 bg-slate-200 rounded-md mt-2"></div>
+              </div>
+              <div className="h-5 w-1/6 bg-slate-200 rounded-md"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="lg:col-span-5 mt-10 lg:mt-0">
+        <div className="bg-slate-100 rounded-lg p-6">
+          <div className="h-7 w-1/2 bg-slate-300 rounded-md mb-6"></div>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <div className="h-4 w-1/4 bg-slate-200 rounded-md"></div>
+              <div className="h-4 w-1/3 bg-slate-200 rounded-md"></div>
+            </div>
+            <div className="flex justify-between">
+              <div className="h-4 w-1/4 bg-slate-200 rounded-md"></div>
+              <div className="h-4 w-1/3 bg-slate-200 rounded-md"></div>
+            </div>
+            <div className="h-px w-full bg-slate-300 my-4"></div>
+            <div className="flex justify-between">
+              <div className="h-6 w-1/3 bg-slate-300 rounded-md"></div>
+              <div className="h-6 w-1/2 bg-slate-300 rounded-md"></div>
+            </div>
+          </div>
+          <div className="h-12 w-full bg-slate-300 rounded-lg mt-6"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 function KeranjangPage() {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingItemId, setUpdatingItemId] = useState(null);
   const [removingItemId, setRemovingItemId] = useState(null);
-  const navigate = useNavigate();
 
   const fetchCartItems = async (showMainLoading = true) => {
-    if (showMainLoading) {
-      setLoading(true);
-    }
+    if (showMainLoading) setLoading(true);
     setError(null);
     try {
       const response = await apiClient.get("/keranjang");
-      if (response.data && Array.isArray(response.data)) {
-        setCartItems(response.data);
-      } else if (response.data && Array.isArray(response.data.data)) {
-        setCartItems(response.data.data);
-      } else {
-        setCartItems([]);
-        if (response.data) {
-          console.error("Format data keranjang tidak sesuai:", response.data);
-        }
-      }
+      setCartItems(response.data.data || []);
     } catch (err) {
-      console.error("Gagal memuat keranjang:", err);
-      let errorMessage = "Gagal memuat data keranjang.";
+      console.error("Gagal mengambil item keranjang:", err);
       if (
         err.response &&
         (err.response.status === 401 || err.response.status === 403)
       ) {
-        errorMessage = "Silakan login untuk melihat keranjang Anda."; // <--- Teks diubah
+        setError(
+          "Sesi Anda telah berakhir. Silakan login kembali untuk melihat keranjang."
+        );
+        setTimeout(
+          () => navigate("/login", { state: { from: "/keranjang" } }),
+          3000
+        );
+      } else {
+        setError("Gagal memuat item keranjang. Coba muat ulang halaman.");
       }
-      setError(errorMessage);
       setCartItems([]);
     } finally {
-      if (showMainLoading) {
-        setLoading(false);
-      }
-      setUpdatingItemId(null);
-      setRemovingItemId(null);
+      if (showMainLoading) setLoading(false);
     }
   };
+
   useEffect(() => {
-    fetchCartItems(true);
+    fetchCartItems();
   }, []);
-  const totalHarga = useMemo(() => {
-    return cartItems.reduce((total, item) => {
-      // <--- Diubah: item?.pupuk?.harga -> item?.atk?.harga
-      const harga = parseInt(item?.atk?.harga, 10) || 0;
-      const quantity = item?.quantity ?? 0;
-      return total + harga * quantity;
-    }, 0);
-  }, [cartItems]);
+
   const handleUpdateQuantity = async (cartItemId, newQuantity) => {
-    const quantityNum = Math.max(1, parseInt(newQuantity, 10));
-    const currentItem = cartItems.find((item) => item.id === cartItemId);
-    if (currentItem && currentItem.quantity === quantityNum) return;
+    if (newQuantity < 1) return;
     setUpdatingItemId(cartItemId);
     try {
       await apiClient.put(`/keranjang/${cartItemId}`, {
-        quantity: quantityNum,
+        quantity: newQuantity,
       });
       await fetchCartItems(false);
     } catch (err) {
-      console.error(`Gagal update kuantitas item ${cartItemId}:`, err);
-      setError(err.response?.data?.message || "Gagal update kuantitas item.");
+      console.error("Gagal memperbarui kuantitas:", err);
+      alert("Gagal memperbarui kuantitas. Silakan coba lagi.");
+    } finally {
       setUpdatingItemId(null);
     }
   };
+
   const handleRemoveItem = async (cartItemId, itemName) => {
-    const displayNama = itemName || "item ini";
     if (
-      window.confirm(`Yakin ingin menghapus ${displayNama} dari keranjang?`)
-    ) {
-      setRemovingItemId(cartItemId);
-      try {
-        await apiClient.delete(`/keranjang/${cartItemId}`);
-        await fetchCartItems(false);
-      } catch (err) {
-        console.error(`Gagal hapus item ${cartItemId}:`, err);
-        setError(err.response?.data?.message || "Gagal menghapus item.");
-        setRemovingItemId(null);
-      }
+      !window.confirm(
+        `Apakah Anda yakin ingin menghapus "${itemName}" dari keranjang?`
+      )
+    )
+      return;
+    setRemovingItemId(cartItemId);
+    try {
+      await apiClient.delete(`/keranjang/${cartItemId}`);
+      await fetchCartItems(false);
+    } catch (err) {
+      console.error("Gagal menghapus item:", err);
+      alert("Gagal menghapus item. Silakan coba lagi.");
+    } finally {
+      setRemovingItemId(null);
     }
   };
+
   const handleCheckout = () => {
     navigate("/checkout");
   };
 
+  const totalBelanja = useMemo(() => {
+    return cartItems.reduce((total, item) => {
+      const harga = parseInt(item.atk?.harga, 10) || 0;
+      return total + item.quantity * harga;
+    }, 0);
+  }, [cartItems]);
+
+  const ongkosKirim = 15000; // Contoh statis
+  const totalPembayaran = totalBelanja + ongkosKirim;
+
+  if (loading) {
+    return (
+      <div className="bg-white">
+        <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-atk-dark sm:text-4xl mb-12">
+            Keranjang Belanja
+          </h1>
+          <CartSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-20 px-6 bg-white min-h-[60vh] flex flex-col justify-center items-center">
+        <ExclamationTriangleIcon className="h-16 w-16 text-red-400 mb-4" />
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          Terjadi Kesalahan
+        </h2>
+        <p className="text-slate-500 max-w-md">{error}</p>
+        <button
+          onClick={() => fetchCartItems()}
+          className="mt-6 inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-atk-primary hover:bg-atk-secondary focus:outline-none"
+        >
+          <ArrowPathIcon className="h-5 w-5 mr-2 -ml-1" />
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "#fff" }}>
-      <main className="container mx-auto px-2 sm:px-4 py-6 md:py-10">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-8 items-start">
-          {/* Product List */}
-          <section style={{ flex: 2, minWidth: 0 }}>
-            <div style={{ marginBottom: 28 }}>
-              <Link
-                to="/katalog"
-                style={{
-                  color: "var(--atk-primary)",
-                  fontWeight: 500,
-                  fontSize: 15,
-                  textDecoration: "underline",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <ArrowLeftIcon className="h-5 w-5" /> Kembali ke Katalog
-              </Link>
-            </div>
-            <h1
-              style={{
-                fontWeight: 800,
-                fontSize: 22,
-                color: "var(--atk-dark)",
-                marginBottom: 18,
-              }}
-            >
-              Keranjang
-            </h1>
-            {error && (
-              <div
-                style={{
-                  marginBottom: 18,
-                  padding: 14,
-                  background: "#fff0f0",
-                  border: "1px solid #f7374f22",
-                  color: "var(--atk-primary)",
-                  borderRadius: 10,
-                  fontSize: 15,
-                }}
-              >
-                <p>{error}</p>
-                {(error.includes("login") || error.includes("Sesi")) && (
-                  <button
-                    onClick={() => navigate("/login")}
-                    style={{
-                      marginTop: 10,
-                      padding: "7px 16px",
-                      background: "var(--atk-primary)",
-                      color: "#fff",
-                      borderRadius: 8,
-                      fontWeight: 600,
-                      fontSize: 15,
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Login
-                  </button>
-                )}
-              </div>
-            )}
-            {loading ? (
-              <div style={{ padding: 12 }}>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <CartItemSkeleton key={i} />
-                ))}
-              </div>
-            ) : cartItems.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 40 }}>
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    background: "#f5f5f5",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 14px auto",
-                  }}
-                >
-                  <ShoppingCartIcon
-                    className="h-8 w-8"
-                    style={{ color: "var(--atk-primary)" }}
-                  />
-                </div>
-                <h3
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 18,
-                    color: "var(--atk-dark)",
-                    marginBottom: 6,
-                  }}
-                >
-                  Keranjang Kosong
-                </h3>
-                <p
-                  style={{
-                    color: "var(--atk-secondary)",
-                    marginBottom: 18,
-                    fontSize: 14,
-                  }}
-                >
-                  Belum ada produk di keranjang.
-                </p>
-                <Link
-                  to="/katalog"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "10px 28px",
-                    border: "none",
-                    borderRadius: 8,
-                    background: "var(--atk-primary)",
-                    color: "#fff",
-                    fontWeight: 600,
-                    fontSize: 15,
-                    cursor: "pointer",
-                    textDecoration: "none",
-                  }}
-                >
-                  Mulai Belanja
-                </Link>
-              </div>
-            ) : (
+    <div className="bg-white">
+      <div className="container mx-auto px-4 pt-16 pb-24 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-extrabold tracking-tight text-atk-dark sm:text-4xl">
+          Keranjang Belanja
+        </h1>
+
+        <div className="mt-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16">
+          <section aria-labelledby="cart-heading" className="lg:col-span-7">
+            <h2 id="cart-heading" className="sr-only">
+              Item di dalam keranjang belanja Anda
+            </h2>
+
+            {cartItems.length > 0 ? (
               <CartList
                 items={cartItems}
                 updatingItemId={updatingItemId}
@@ -512,120 +476,102 @@ function KeranjangPage() {
                 onUpdateQuantity={handleUpdateQuantity}
                 onRemove={handleRemoveItem}
               />
+            ) : (
+              <div className="text-center py-16 px-6 border-2 border-dashed border-slate-200 rounded-lg">
+                <ShoppingCartIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-700">
+                  Keranjang Anda kosong
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Sepertinya Anda belum menambahkan item apa pun.
+                </p>
+                <Link
+                  to="/katalog"
+                  className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-atk-primary hover:bg-atk-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Mulai Belanja
+                </Link>
+              </div>
             )}
           </section>
 
-          {/* Order Summary */}
-          <aside
-            style={{
-              flex: 1,
-              minWidth: 260,
-              maxWidth: 340,
-              alignSelf: "flex-start",
-              position: "sticky",
-              top: 32,
-              height: "fit-content",
-            }}
-          >
-            {!loading && cartItems.length > 0 && (
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  border: "1px solid #eee",
-                  padding: 22,
-                  boxShadow: "none",
-                }}
+          {/* Order summary */}
+          {cartItems.length > 0 && (
+            <section
+              aria-labelledby="summary-heading"
+              className="mt-16 rounded-lg bg-slate-50 px-4 py-6 sm:p-6 lg:col-span-5 lg:mt-0 lg:p-8"
+            >
+              <h2
+                id="summary-heading"
+                className="text-lg font-bold text-atk-dark"
               >
-                <h2
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 18,
-                    color: "var(--atk-dark)",
-                    marginBottom: 18,
-                  }}
-                >
-                  Ringkasan
-                </h2>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 15,
-                    color: "var(--atk-secondary)",
-                    marginBottom: 8,
-                  }}
-                >
-                  <span>Subtotal</span>
-                  <span style={{ fontWeight: 600, color: "var(--atk-dark)" }}>
-                    {formatRupiah(totalHarga)}
-                  </span>
+                Ringkasan Pesanan
+              </h2>
+
+              <dl className="mt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <dt className="text-sm text-slate-600">Total Belanja</dt>
+                  <dd className="text-sm font-medium text-slate-900">
+                    {formatRupiah(totalBelanja)}
+                  </dd>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 15,
-                    color: "var(--atk-secondary)",
-                    marginBottom: 8,
-                  }}
-                >
-                  <span>Pengiriman</span>
-                  <span style={{ color: "var(--atk-primary)" }}>
-                    Dihitung saat checkout
-                  </span>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                  <dt className="flex items-center text-sm text-slate-600">
+                    <span>Ongkos Kirim</span>
+                    <a
+                      href="#"
+                      className="ml-2 flex-shrink-0 text-slate-400 hover:text-slate-500"
+                    >
+                      <span className="sr-only">
+                        Pelajari tentang estimasi ongkos kirim
+                      </span>
+                      <InformationCircleIcon
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                      />
+                    </a>
+                  </dt>
+                  <dd className="text-sm font-medium text-slate-900">
+                    {formatRupiah(ongkosKirim)}
+                  </dd>
                 </div>
-                <div
-                  style={{
-                    borderTop: "1px solid #eee",
-                    margin: "16px 0 12px 0",
-                    paddingTop: 10,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontWeight: 700,
-                    fontSize: 17,
-                    color: "var(--atk-dark)",
-                  }}
-                >
-                  <span>Total</span>
-                  <span>{formatRupiah(totalHarga)}</span>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                  <dt className="text-base font-bold text-atk-dark">
+                    Total Pembayaran
+                  </dt>
+                  <dd className="text-base font-bold text-atk-primary">
+                    {formatRupiah(totalPembayaran)}
+                  </dd>
                 </div>
+              </dl>
+
+              <div className="mt-6">
                 <button
                   onClick={handleCheckout}
+                  className="w-full flex items-center justify-center rounded-md border border-transparent bg-atk-primary px-6 py-3 text-base font-bold text-white shadow-sm hover:bg-atk-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={cartItems.length === 0}
-                  style={{
-                    width: "100%",
-                    marginTop: 18,
-                    padding: "13px 0",
-                    borderRadius: 8,
-                    background:
-                      cartItems.length === 0 ? "#bbb" : "var(--atk-primary)",
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: 16,
-                    border: "none",
-                    cursor: cartItems.length === 0 ? "not-allowed" : "pointer",
-                    opacity: cartItems.length === 0 ? 0.7 : 1,
-                  }}
                 >
+                  <CreditCardIcon className="h-5 w-5 mr-2" />
                   Lanjut ke Pembayaran
                 </button>
-                <p
-                  style={{
-                    marginTop: 12,
-                    fontSize: 13,
-                    textAlign: "center",
-                    color: "var(--atk-secondary)",
-                  }}
-                >
-                  <InformationCircleIcon className="h-4 w-4 inline mr-1 align-text-bottom" />{" "}
-                  Biaya pengiriman akan dihitung pada langkah berikutnya
+              </div>
+
+              <div className="mt-6 flex justify-center text-center text-sm text-slate-500">
+                <p>
+                  atau{" "}
+                  <Link
+                    to="/katalog"
+                    className="font-medium text-atk-secondary hover:text-atk-primary"
+                  >
+                    Lanjutkan Belanja
+                    <span aria-hidden="true"> &rarr;</span>
+                  </Link>
                 </p>
               </div>
-            )}
-          </aside>
+            </section>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

@@ -3,698 +3,412 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import apiClient from "../../../api/apiClient";
 import {
-  ShoppingCartIcon,
+  ArrowLeftIcon,
+  CreditCardIcon,
+  ExclamationTriangleIcon,
+  ArrowPathIcon,
   UserCircleIcon,
   MapPinIcon,
   PhoneIcon,
   PencilIcon,
-  CreditCardIcon,
-  ArrowPathIcon,
-  XCircleIcon,
-  InformationCircleIcon,
-  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import {
-  CheckCircleIcon as SolidCheckCircle,
-  XCircleIcon as SolidXCircle,
-} from "@heroicons/react/24/solid";
-import { CheckoutPageSkeleton } from "../../../components/CheckoutSkeletons";
+import { CheckoutPageSkeleton as CheckoutSkeleton } from "../../../components/CheckoutSkeletons";
 import { formatRupiah } from "../../../components/formatRupiah";
+
+const FormInput = ({
+  id,
+  label,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+  required = true,
+  icon,
+  error,
+}) => (
+  <div>
+    <label
+      htmlFor={id}
+      className="block text-sm font-medium text-slate-700 mb-1"
+    >
+      {label}
+    </label>
+    <div className="relative">
+      <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+        {React.createElement(icon, {
+          className: "h-5 w-5 text-slate-400",
+          "aria-hidden": true,
+        })}
+      </span>
+      <input
+        type={type}
+        id={id}
+        name={id}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className={`block w-full rounded-md border-slate-300 pl-10 shadow-sm focus:border-atk-primary focus:ring-atk-primary sm:text-sm ${
+          error ? "border-red-500" : ""
+        }`}
+      />
+    </div>
+    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+  </div>
+);
+
+const FormTextarea = ({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  icon,
+  error,
+}) => (
+  <div>
+    <label
+      htmlFor={id}
+      className="block text-sm font-medium text-slate-700 mb-1"
+    >
+      {label}
+    </label>
+    <div className="relative">
+      <span className="absolute top-3 left-0 flex items-center pl-3">
+        {React.createElement(icon, {
+          className: "h-5 w-5 text-slate-400",
+          "aria-hidden": true,
+        })}
+      </span>
+      <textarea
+        id={id}
+        name={id}
+        rows={4}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`block w-full rounded-md border-slate-300 pl-10 shadow-sm focus:border-atk-primary focus:ring-atk-primary sm:text-sm ${
+          error ? "border-red-500" : ""
+        }`}
+      />
+    </div>
+    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+  </div>
+);
 
 function CheckoutPage() {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
-  const [loadingCart, setLoadingCart] = useState(true);
-  const [checkoutError, setCheckoutError] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const [formData, setFormData] = useState({
-    namaPemesan: "",
-    nomorHp: "",
-    alamatPengiriman: "",
+    nama_pelanggan: "",
+    nomor_whatsapp: "",
+    alamat_pengiriman: "",
     catatan: "",
   });
-  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    const fetchCartAndUser = async () => {
-      setLoadingCart(true);
-      setCheckoutError(null);
-      setCurrentUser(null);
-      setCartItems([]);
+    const fetchInitialData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        let userData = null;
-        try {
-          const userResponse = await apiClient.get("/user");
-          if (isMounted && userResponse.data) {
-            userData = userResponse.data.user;
-            setCurrentUser(userData);
-            setFormData((prev) => ({
-              ...prev,
-              namaPemesan: userData.name || "",
-              nomorHp: userData.phone || userData.nomor_whatsapp || "",
-            }));
-          }
-        } catch (userErr) {
-          if (isMounted)
-            console.warn("Gagal memuat data user:", userErr.message);
-          if (userErr.response && userErr.response.status === 401) {
-            navigate("/login");
-            return;
-          }
+        const [userResponse, cartResponse] = await Promise.all([
+          apiClient.get("/user").catch((err) => {
+            if (err.response?.status === 401) throw err;
+            return null;
+          }),
+          apiClient.get("/keranjang"),
+        ]);
+
+        if (userResponse?.data?.user) {
+          const { user } = userResponse.data;
+          setFormData((prev) => ({
+            ...prev,
+            nama_pelanggan: user.name || "",
+            nomor_whatsapp: user.phone || user.nomor_whatsapp || "",
+            alamat_pengiriman: user.alamat || "",
+          }));
         }
-        const cartResponse = await apiClient.get("/keranjang");
-        if (isMounted) {
-          if (cartResponse.data && Array.isArray(cartResponse.data.data)) {
-            setCartItems(cartResponse.data.data);
-          } else {
-            setCartItems([]);
-          }
+
+        const items = cartResponse.data?.data || [];
+        if (items.length === 0) {
+          navigate("/keranjang", {
+            state: { message: "Keranjang Anda kosong, tidak bisa checkout." },
+          });
+          return;
         }
+        setCartItems(items);
       } catch (err) {
-        if (isMounted) {
-          console.error("Gagal memuat data checkout:", err);
-          if (err.response && err.response.status === 401) {
-            setCheckoutError("Sesi Anda berakhir. Silakan login kembali.");
-          } else {
-            setCheckoutError(
-              "Gagal memuat data keranjang. Muat ulang halaman."
-            );
-          }
-          setCartItems([]);
+        console.error("Gagal memuat data checkout:", err);
+        if (err.response?.status === 401) {
+          navigate("/login", { state: { from: "/checkout" } });
+        } else {
+          setError("Gagal memuat data. Silakan coba lagi.");
         }
       } finally {
-        if (isMounted) setLoadingCart(false);
+        setLoading(false);
       }
     };
-    fetchCartAndUser();
-    return () => {
-      isMounted = false;
-    };
+
+    fetchInitialData();
   }, [navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
-  const totalHarga = useMemo(() => {
+  const totalBelanja = useMemo(() => {
     return cartItems.reduce((total, item) => {
-      return total + (item.atk?.harga || 0) * (item.quantity || 0);
+      const harga = parseInt(item.atk?.harga, 10) || 0;
+      return total + item.quantity * harga;
     }, 0);
   }, [cartItems]);
 
-  const orderItems = cartItems.map((item) => ({
-    atk_id: item.atk.id,
-    quantity: item.quantity,
-    harga_saat_pesanan: item.atk.harga,
-  }));
+  const ongkosKirim = 15000;
+  const totalPembayaran = totalBelanja + ongkosKirim;
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
-    if (cartItems.length === 0) {
-      alert("Keranjang Anda kosong.");
-      return;
-    }
-    if (
-      !formData.namaPemesan.trim() ||
-      !formData.nomorHp.trim() ||
-      !formData.alamatPengiriman.trim()
-    ) {
-      alert("Harap lengkapi Nama Penerima, Nomor HP, dan Alamat Pengiriman.");
-      return;
-    }
-    setIsProcessingOrder(true);
-    setCheckoutError(null);
-
-    // Dapatkan tanggal saat ini dalam format YYYY-MM-DD
-    const today = new Date();
-    const tanggalPesananFormatted = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
+    setIsProcessing(true);
+    setError(null);
+    setValidationErrors({});
 
     const orderPayload = {
-      user_id: currentUser?.id || null,
-      nama_pelanggan: formData.namaPemesan,
-      nomor_whatsapp: formData.nomorHp,
-      alamat_pengiriman: formData.alamatPengiriman,
-      catatan: formData.catatan,
-      tanggal_pesanan: tanggalPesananFormatted, // <--- PERBAIKAN: Tambahkan tanggal_pesanan
-      items: orderItems,
-      total_harga: totalHarga,
+      ...formData,
+      items: cartItems.map((item) => ({
+        atk_id: item.atk.id,
+        quantity: item.quantity,
+        harga_saat_pesanan: item.atk.harga,
+      })),
+      total_harga: totalPembayaran,
     };
+
     try {
       const response = await apiClient.post("/pesanan", orderPayload);
-      if (response.data && response.data.data && response.data.data.id) {
-        const createdOrderData = response.data.data;
-        setCartItems([]); // Kosongkan keranjang setelah order dibuat
-        navigate(`/payment/${createdOrderData.id}`, {
-          state: { order: createdOrderData },
-        });
+      const createdOrder = response.data?.data;
+      if (createdOrder?.id) {
+        navigate(`/payment/${createdOrder.id}`);
       } else {
-        throw new Error("Respons pembuatan pesanan tidak valid.");
+        throw new Error("Respons server tidak valid setelah membuat pesanan.");
       }
-    } catch (error) {
+    } catch (err) {
       console.error(
         "Gagal membuat pesanan:",
-        error.response?.data || error.message
+        err.response?.data || err.message
       );
-      const serverErrorMessage =
-        error.response?.data?.message ||
-        "Terjadi kesalahan saat membuat pesanan.";
-      const validationErrors = error.response?.data?.errors;
-      let displayError = serverErrorMessage;
-      if (validationErrors) {
-        displayError +=
-          "\n\nDetail:\n" + Object.values(validationErrors).flat().join("\n");
+      const res = err.response;
+      if (res?.status === 422 && res.data?.errors) {
+        setValidationErrors(res.data.errors);
+        setError("Harap periksa kembali data yang Anda masukkan.");
+      } else {
+        setError(
+          res?.data?.message || "Terjadi kesalahan saat memproses pesanan Anda."
+        );
       }
-      setCheckoutError(displayError);
     } finally {
-      setIsProcessingOrder(false);
+      setIsProcessing(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bg-white">
+        <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-atk-dark sm:text-4xl mb-12">
+            Checkout
+          </h1>
+          <CheckoutSkeleton />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "#fff" }}>
-      <main className="container mx-auto px-2 sm:px-4 py-6 md:py-10">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-8">
-          {/* SHIPPING FORM */}
-          <section style={{ flex: 2, minWidth: 0 }}>
-            <div style={{ marginBottom: 24 }}>
-              <Link
-                to="/keranjang"
-                style={{
-                  color: "var(--atk-primary)",
-                  fontWeight: 500,
-                  fontSize: 15,
-                  textDecoration: "underline",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <ArrowLeftIcon className="h-5 w-5" /> Kembali ke Keranjang
-              </Link>
+    <div className="bg-white">
+      <div className="container mx-auto px-4 pt-16 pb-24 sm:px-6 lg:px-8">
+        <div className="flex items-center mb-8">
+          <Link
+            to="/keranjang"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-atk-secondary hover:text-atk-primary transition-colors"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+            Kembali ke Keranjang
+          </Link>
+        </div>
+
+        <h1 className="text-3xl font-extrabold tracking-tight text-atk-dark sm:text-4xl">
+          Informasi Pengiriman
+        </h1>
+
+        <form
+          onSubmit={handleCreateOrder}
+          className="mt-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16"
+        >
+          <section aria-labelledby="shipping-heading" className="lg:col-span-7">
+            <h2 id="shipping-heading" className="sr-only">
+              Detail Pengiriman
+            </h2>
+
+            <div className="space-y-6 bg-white border border-slate-200 rounded-lg p-6">
+              <FormInput
+                id="nama_pelanggan"
+                label="Nama Penerima"
+                value={formData.nama_pelanggan}
+                onChange={handleInputChange}
+                placeholder="Masukkan nama lengkap"
+                icon={UserCircleIcon}
+                error={validationErrors.nama_pelanggan?.[0]}
+              />
+              <FormInput
+                id="nomor_whatsapp"
+                label="Nomor Telepon (WhatsApp)"
+                type="tel"
+                value={formData.nomor_whatsapp}
+                onChange={handleInputChange}
+                placeholder="Contoh: 081234567890"
+                icon={PhoneIcon}
+                error={validationErrors.nomor_whatsapp?.[0]}
+              />
+              <FormTextarea
+                id="alamat_pengiriman"
+                label="Alamat Lengkap Pengiriman"
+                value={formData.alamat_pengiriman}
+                onChange={handleInputChange}
+                placeholder="Masukkan jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, dan kode pos"
+                icon={MapPinIcon}
+                error={validationErrors.alamat_pengiriman?.[0]}
+              />
+              <FormTextarea
+                id="catatan"
+                label="Catatan untuk Penjual (Opsional)"
+                value={formData.catatan}
+                onChange={handleInputChange}
+                placeholder="Misalnya: Patokan alamat, permintaan khusus, dll."
+                icon={PencilIcon}
+              />
             </div>
-            <h1
-              style={{
-                fontWeight: 800,
-                fontSize: 22,
-                color: "var(--atk-dark)",
-                marginBottom: 18,
-              }}
-            >
-              Checkout
-            </h1>
-            {loadingCart ? (
-              <CheckoutPageSkeleton />
-            ) : checkoutError ? (
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  border: "1px solid #eee",
-                  padding: 36,
-                  textAlign: "center",
-                }}
+          </section>
+
+          {/* Order summary */}
+          <section
+            aria-labelledby="summary-heading"
+            className="mt-16 rounded-lg bg-slate-50 lg:col-span-5 lg:mt-0"
+          >
+            <div className="sticky top-20 p-6">
+              <h2
+                id="summary-heading"
+                className="text-lg font-bold text-atk-dark"
               >
-                <XCircleIcon
-                  className="h-12 w-12"
-                  style={{
-                    color: "var(--atk-primary)",
-                    margin: "0 auto 18px auto",
-                  }}
-                />
-                <p
-                  style={{
-                    color: "var(--atk-primary)",
-                    fontSize: 16,
-                    marginBottom: 18,
-                    whiteSpace: "pre-line",
-                  }}
-                >
-                  {checkoutError}
-                </p>
-                <button
-                  onClick={() => window.location.reload()}
-                  style={{
-                    padding: "12px 32px",
-                    background: "var(--atk-primary)",
-                    color: "#fff",
-                    borderRadius: 8,
-                    fontWeight: 600,
-                    fontSize: 15,
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Coba Lagi
-                </button>
-              </div>
-            ) : cartItems.length === 0 ? (
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  border: "1px solid #eee",
-                  padding: 40,
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    background: "#f5f5f5",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 14px auto",
-                  }}
-                >
-                  <ShoppingCartIcon
-                    className="h-8 w-8"
-                    style={{ color: "var(--atk-primary)" }}
-                  />
-                </div>
-                <h3
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 18,
-                    color: "var(--atk-dark)",
-                    marginBottom: 6,
-                  }}
-                >
-                  Keranjang Anda kosong
-                </h3>
-                <p
-                  style={{
-                    color: "var(--atk-secondary)",
-                    marginBottom: 18,
-                    fontSize: 14,
-                  }}
-                >
-                  Tambahkan ATK ke keranjang untuk melanjutkan
-                </p>
-                <Link
-                  to="/katalog"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "10px 28px",
-                    border: "none",
-                    borderRadius: 8,
-                    background: "var(--atk-primary)",
-                    color: "#fff",
-                    fontWeight: 600,
-                    fontSize: 15,
-                    cursor: "pointer",
-                    textDecoration: "none",
-                  }}
-                >
-                  Lihat Katalog
-                </Link>
-              </div>
-            ) : (
-              <form
-                onSubmit={handleCreateOrder}
-                style={{ display: "flex", flexDirection: "column", gap: 0 }}
-              >
-                <div
-                  style={{
-                    background: "#fff",
-                    borderRadius: 14,
-                    border: "1px solid #eee",
-                    padding: 22,
-                    marginBottom: 0,
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 17,
-                      color: "var(--atk-dark)",
-                      marginBottom: 16,
-                    }}
-                  >
-                    Informasi Pengiriman
-                  </h2>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 18,
-                      marginBottom: 14,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <label
-                        htmlFor="namaPemesan"
-                        style={{
-                          display: "block",
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: "var(--atk-dark)",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Nama Penerima{" "}
-                        <span style={{ color: "#e53935" }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="namaPemesan"
-                        id="namaPemesan"
-                        value={formData.namaPemesan}
-                        onChange={handleInputChange}
-                        style={{
-                          width: "100%",
-                          padding: "10px 14px",
-                          border: "1px solid #eee",
-                          borderRadius: 8,
-                          fontSize: 14,
-                          color: "var(--atk-dark)",
-                        }}
-                        required
+                Ringkasan Pesanan
+              </h2>
+
+              {error && (
+                <div className="mt-4 rounded-md bg-red-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <ExclamationTriangleIcon
+                        className="h-5 w-5 text-red-400"
+                        aria-hidden="true"
                       />
                     </div>
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <label
-                        htmlFor="nomorHp"
-                        style={{
-                          display: "block",
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: "var(--atk-dark)",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Nomor HP (WhatsApp){" "}
-                        <span style={{ color: "#e53935" }}>*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="nomorHp"
-                        id="nomorHp"
-                        value={formData.nomorHp}
-                        onChange={handleInputChange}
-                        style={{
-                          width: "100%",
-                          padding: "10px 14px",
-                          border: "1px solid #eee",
-                          borderRadius: 8,
-                          fontSize: 14,
-                          color: "var(--atk-dark)",
-                        }}
-                        required
-                      />
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        {error}
+                      </h3>
                     </div>
                   </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label
-                      htmlFor="alamatPengiriman"
-                      style={{
-                        display: "block",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: "var(--atk-dark)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Alamat Pengiriman Lengkap{" "}
-                      <span style={{ color: "#e53935" }}>*</span>
-                    </label>
-                    <textarea
-                      name="alamatPengiriman"
-                      id="alamatPengiriman"
-                      rows="3"
-                      value={formData.alamatPengiriman}
-                      onChange={handleInputChange}
-                      style={{
-                        width: "100%",
-                        padding: "10px 14px",
-                        border: "1px solid #eee",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "var(--atk-dark)",
-                      }}
-                      required
-                    ></textarea>
-                    <p
-                      style={{
-                        marginTop: 4,
-                        fontSize: 12,
-                        color: "var(--atk-secondary)",
-                      }}
-                    >
-                      Detail: Jalan, No Rumah, RT/RW, Kel/Desa, Kec, Kab/Kota,
-                      Prov, Kode Pos
-                    </p>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="catatan"
-                      style={{
-                        display: "block",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: "var(--atk-dark)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Catatan (Opsional)
-                    </label>
-                    <textarea
-                      name="catatan"
-                      id="catatan"
-                      rows="2"
-                      value={formData.catatan}
-                      onChange={handleInputChange}
-                      style={{
-                        width: "100%",
-                        padding: "10px 14px",
-                        border: "1px solid #eee",
-                        borderRadius: 8,
-                        fontSize: 14,
-                        color: "var(--atk-dark)",
-                      }}
-                    ></textarea>
-                  </div>
                 </div>
+              )}
+
+              <ul role="list" className="divide-y divide-slate-200 my-6">
+                {cartItems.map((item) => (
+                  <li key={item.id} className="flex py-4">
+                    <div className="flex-shrink-0">
+                      <img
+                        src={
+                          item.atk.gambar_utama_url ||
+                          "https://placehold.co/80x80/e2e8f0/94a3b8?text=Gambar"
+                        }
+                        alt={item.atk.nama_atk}
+                        className="w-20 h-20 rounded-md object-cover"
+                      />
+                    </div>
+                    <div className="ml-4 flex flex-1 flex-col">
+                      <div>
+                        <div className="flex justify-between text-sm font-medium text-slate-900">
+                          <h3>{item.atk.nama_atk}</h3>
+                          <p className="ml-4">
+                            {formatRupiah(item.atk.harga * item.quantity)}
+                          </p>
+                        </div>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {item.quantity} x {formatRupiah(item.atk.harga)}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <dl className="space-y-4 border-t border-slate-200 pt-6">
+                <div className="flex items-center justify-between">
+                  <dt className="text-sm text-slate-600">Total Belanja</dt>
+                  <dd className="text-sm font-medium text-slate-900">
+                    {formatRupiah(totalBelanja)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-sm text-slate-600">Ongkos Kirim</dt>
+                  <dd className="text-sm font-medium text-slate-900">
+                    {formatRupiah(ongkosKirim)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                  <dt className="text-base font-bold text-atk-dark">
+                    Total Pembayaran
+                  </dt>
+                  <dd className="text-base font-bold text-atk-primary">
+                    {formatRupiah(totalPembayaran)}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="mt-6">
                 <button
                   type="submit"
-                  disabled={isProcessingOrder || cartItems.length === 0}
-                  style={{
-                    width: "100%",
-                    marginTop: 18,
-                    padding: "15px 0",
-                    borderRadius: 8,
-                    background:
-                      isProcessingOrder || cartItems.length === 0
-                        ? "#bbb"
-                        : "var(--atk-primary)",
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: 17,
-                    border: "none",
-                    cursor:
-                      isProcessingOrder || cartItems.length === 0
-                        ? "not-allowed"
-                        : "pointer",
-                    opacity:
-                      isProcessingOrder || cartItems.length === 0 ? 0.7 : 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
+                  disabled={isProcessing}
+                  className="w-full flex items-center justify-center rounded-md border border-transparent bg-atk-primary px-6 py-4 text-base font-bold text-white shadow-sm hover:bg-atk-secondary transition-colors disabled:opacity-50 disabled:cursor-wait"
                 >
-                  {isProcessingOrder ? (
+                  {isProcessing ? (
                     <>
-                      <ArrowPathIcon className="animate-spin h-5 w-5" />{" "}
-                      Memproses Pesanan...
+                      <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+                      Memproses...
                     </>
                   ) : (
                     <>
-                      <CreditCardIcon className="h-5 w-5" /> Lanjut ke
-                      Pembayaran
+                      <CreditCardIcon className="h-5 w-5 mr-2" />
+                      Buat Pesanan & Lanjut Bayar
                     </>
                   )}
                 </button>
-              </form>
-            )}
-          </section>
-
-          {/* ORDER SUMMARY */}
-          <aside
-            style={{
-              flex: 1,
-              minWidth: 260,
-              maxWidth: 340,
-              alignSelf: "flex-start",
-              position: "sticky",
-              top: 32,
-              height: "fit-content",
-            }}
-          >
-            {!loadingCart && cartItems.length > 0 && (
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  border: "1px solid #eee",
-                  padding: 22,
-                  boxShadow: "none",
-                }}
-              >
-                <h2
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 17,
-                    color: "var(--atk-dark)",
-                    marginBottom: 16,
-                  }}
-                >
-                  Ringkasan Pesanan
-                </h2>
-                {/* Order Items */}
-                <div
-                  style={{
-                    marginBottom: 18,
-                    maxHeight: 180,
-                    overflowY: "auto",
-                    paddingRight: 4,
-                  }}
-                >
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <img
-                        src={item.atk?.gambar_utama}
-                        alt={item.atk?.nama_atk}
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          background: "#f5f5f5",
-                        }}
-                        loading="lazy"
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 14,
-                            color: "var(--atk-dark)",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            maxWidth: 120,
-                          }}
-                        >
-                          {item.atk?.nama_atk || "Item"}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "var(--atk-secondary)",
-                          }}
-                        >
-                          {formatRupiah(item.atk?.harga || 0)} x {item.quantity}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: "var(--atk-primary)",
-                        }}
-                      >
-                        {formatRupiah((item.atk?.harga || 0) * item.quantity)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Price Summary */}
-                <div
-                  style={{
-                    borderTop: "1px solid #eee",
-                    paddingTop: 10,
-                    marginTop: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 14,
-                      color: "var(--atk-secondary)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span>Subtotal</span>
-                    <span style={{ fontWeight: 600, color: "var(--atk-dark)" }}>
-                      {formatRupiah(totalHarga)}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 14,
-                      color: "var(--atk-secondary)",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span>Pengiriman</span>
-                    <span style={{ color: "var(--atk-primary)" }}>
-                      Dihitung saat checkout
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      borderTop: "1px solid #eee",
-                      margin: "10px 0 6px 0",
-                      paddingTop: 6,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontWeight: 700,
-                      fontSize: 16,
-                      color: "var(--atk-dark)",
-                    }}
-                  >
-                    <span>Total</span>
-                    <span>{formatRupiah(totalHarga)}</span>
-                  </div>
-                </div>
-                <p
-                  style={{
-                    marginTop: 10,
-                    fontSize: 12,
-                    textAlign: "center",
-                    color: "var(--atk-secondary)",
-                  }}
-                >
-                  <InformationCircleIcon
-                    className="h-4 w-4"
-                    style={{ marginRight: 4, verticalAlign: "middle" }}
-                  />{" "}
-                  Biaya pengiriman akan dihitung pada langkah berikutnya
-                </p>
               </div>
-            )}
-          </aside>
-        </div>
-      </main>
+            </div>
+          </section>
+        </form>
+      </div>
     </div>
   );
 }
+
 export default CheckoutPage;

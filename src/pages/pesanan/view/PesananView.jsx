@@ -29,20 +29,20 @@ const getStatusPesananColor = (status) => {
   switch (status?.toLowerCase()) {
     case "baru":
     case "pending": // Menambahkan alias umum
-      return "bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200";
+      return "bg-atk-tertiary/10 text-atk-tertiary ring-1 ring-inset ring-atk-tertiary/20";
     case "menunggu_konfirmasi_pembayaran":
       return "bg-yellow-100 text-yellow-800 ring-1 ring-inset ring-yellow-300"; // Sedikit beda warna
     case "lunas": // Menambahkan status lunas jika ada sebelum diproses
       return "bg-green-100 text-green-700 ring-1 ring-inset ring-green-200";
     case "diproses":
-      return "bg-yellow-100 text-yellow-700 ring-1 ring-inset ring-yellow-200";
+      return "bg-atk-secondary/10 text-atk-secondary ring-1 ring-inset ring-atk-secondary/20";
     case "dikirim":
-      return "bg-cyan-100 text-cyan-700 ring-1 ring-inset ring-cyan-200";
+      return "bg-atk-tertiary/10 text-atk-tertiary ring-1 ring-inset ring-atk-tertiary/20";
     case "selesai":
       return "bg-green-100 text-green-700 ring-1 ring-inset ring-green-200";
     case "dibatalkan": // Mengganti "batal" menjadi "dibatalkan" agar konsisten
     case "batal":
-      return "bg-red-100 text-red-700 ring-1 ring-inset ring-red-200";
+      return "bg-atk-primary/10 text-atk-primary ring-1 ring-inset ring-atk-primary/20";
     default:
       return "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200";
   }
@@ -202,8 +202,8 @@ function PesananPage() {
           aria-current={current_page === i ? "page" : undefined}
           className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
             current_page === i
-              ? "z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-              : "text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0"
+              ? "z-10 bg-atk-primary text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-atk-primary"
+              : "text-atk-dark ring-1 ring-inset ring-slate-300 hover:bg-slate-50 focus:z-20 focus:outline-offset-0"
           }`}
         >
           {i}
@@ -252,10 +252,10 @@ function PesananPage() {
         );
 
   return (
-    <div className="bg-slate-50 min-h-screen py-10 sm:py-16">
+    <div className="bg-white min-h-screen py-10 sm:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-10 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+          <h1 className="text-4xl font-extrabold tracking-tight text-atk-dark mb-2">
             Riwayat Pesanan
           </h1>
           <p className="text-base text-slate-500">
@@ -272,8 +272,8 @@ function PesananPage() {
               className={`px-4 py-2 rounded-full font-semibold text-sm transition-all
                 ${
                   activeTab === tab.key
-                    ? "bg-emerald-600 text-white shadow"
-                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                    ? "bg-atk-primary text-white shadow-lg"
+                    : "bg-white text-atk-dark border border-slate-200 hover:bg-slate-100"
                 }`}
             >
               {tab.label}
@@ -308,12 +308,12 @@ function PesananPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col gap-4 border border-slate-100"
+                  className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-300 p-6 sm:p-8 flex flex-col gap-4 border border-slate-100"
                 >
                   {/* Header Card */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-800 text-base">
+                      <span className="font-bold text-atk-dark text-base">
                         Andika Tani
                       </span>
                       {/* Bisa tambahkan logo/toko lain jika multi-toko */}
@@ -339,13 +339,13 @@ function PesananPage() {
                     {(order.items || []).map((item, idx) => (
                       <div key={idx} className="flex items-center gap-4">
                         <img
-                          src={item.gambar_utama}
+                          src={item.gambar_utama_url}
                           alt={item.nama_atk}
                           className="w-16 h-16 rounded-lg object-cover bg-slate-100"
                           loading="lazy"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-slate-800 truncate">
+                          <h4 className="text-sm font-medium text-atk-dark truncate">
                             {item.nama_atk || "Produk"}
                           </h4>
                           <div className="text-xs text-slate-500">
@@ -353,7 +353,7 @@ function PesananPage() {
                             {formatRupiah(item.harga_saat_pesanan || 0)}
                           </div>
                         </div>
-                        <div className="font-bold text-slate-700 whitespace-nowrap">
+                        <div className="font-bold text-atk-dark whitespace-nowrap">
                           {formatRupiah(
                             (item.harga_saat_pesanan || 0) * (item.jumlah || 0)
                           )}
@@ -363,7 +363,7 @@ function PesananPage() {
                   </div>
                   {/* Footer Card */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 mt-2">
-                    <div className="text-lg font-extrabold text-emerald-700">
+                    <div className="text-lg font-extrabold text-atk-primary">
                       Total Pesanan: {formatRupiah(order.total_harga)}
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -372,15 +372,15 @@ function PesananPage() {
                           Nilai
                         </button>
                       )}
-                      <button className="border border-slate-300 text-slate-700 font-semibold px-5 py-2 rounded-lg hover:bg-slate-100 transition">
+                      <button className="border border-slate-300 text-atk-dark font-semibold px-5 py-2 rounded-lg hover:bg-slate-100 transition">
                         Hubungi Penjual
                       </button>
-                      <button className="border border-slate-300 text-slate-700 font-semibold px-5 py-2 rounded-lg hover:bg-slate-100 transition">
+                      <button className="border border-slate-300 text-atk-dark font-semibold px-5 py-2 rounded-lg hover:bg-slate-100 transition">
                         Beli Lagi
                       </button>
                       <Link
                         to={`/pesanan/detail/${order.id}`}
-                        className="text-emerald-600 hover:text-emerald-800 font-semibold px-5 py-2 rounded-lg border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 transition"
+                        className="text-white bg-atk-primary hover:bg-atk-secondary font-semibold px-5 py-2 rounded-lg border transition"
                       >
                         Detail
                       </Link>
@@ -400,7 +400,7 @@ function PesananPage() {
               </p>
               <Link
                 to="/katalog"
-                className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors mt-6"
+                className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-atk-primary hover:bg-atk-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors mt-6"
               >
                 <ShoppingBagIcon className="h-5 w-5 mr-2 -ml-1" /> Mulai Belanja
                 Sekarang
@@ -421,15 +421,15 @@ function PesananPage() {
                 <div>
                   <p className="text-sm text-slate-700">
                     Menampilkan{" "}
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-atk-dark">
                       {paginationData.meta.from || 0}
                     </span>{" "}
                     -{" "}
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-atk-dark">
                       {paginationData.meta.to || 0}
                     </span>{" "}
                     dari{" "}
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-atk-dark">
                       {paginationData.meta.total || 0}
                     </span>{" "}
                     hasil
@@ -446,7 +446,7 @@ function PesananPage() {
                       className={`relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-slate-300 focus:z-20 focus:outline-offset-0 ${
                         !paginationData.links?.prev
                           ? "text-slate-400 cursor-not-allowed"
-                          : "text-slate-700 hover:bg-slate-50"
+                          : "text-atk-dark hover:bg-slate-50"
                       }`}
                     >
                       <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
@@ -459,7 +459,7 @@ function PesananPage() {
                       className={`relative inline-flex items-center rounded-r-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-slate-300 focus:z-20 focus:outline-offset-0 ${
                         !paginationData.links?.next
                           ? "text-slate-400 cursor-not-allowed"
-                          : "text-slate-700 hover:bg-slate-50"
+                          : "text-atk-dark hover:bg-slate-50"
                       }`}
                     >
                       <span className="sr-only">Berikutnya</span>
@@ -478,7 +478,7 @@ function PesananPage() {
                   className={`relative inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium ${
                     !paginationData.links?.prev
                       ? "text-slate-400 cursor-not-allowed"
-                      : "text-slate-700 hover:bg-slate-50"
+                      : "text-atk-dark hover:bg-slate-50"
                   }`}
                 >
                   Sebelumnya
@@ -489,7 +489,7 @@ function PesananPage() {
                   className={`relative ml-3 inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium ${
                     !paginationData.links?.next
                       ? "text-slate-400 cursor-not-allowed"
-                      : "text-slate-700 hover:bg-slate-50"
+                      : "text-atk-dark hover:bg-slate-50"
                   }`}
                 >
                   Berikutnya

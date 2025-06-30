@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@theme {
+  --color-atk-primary: #f7374f;
+  --color-atk-secondary: #88304e;
+  --color-atk-tertiary: #522546;
+  --color-atk-dark: #2c2c2c;
+}
+
 :root {
   --atk-primary: #f7374f;
   --atk-secondary: #88304e;
