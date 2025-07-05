@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { KatalogPresenter } from "../presenter/KatalogPresenter";
 import {
   MagnifyingGlassIcon,
@@ -22,6 +22,7 @@ import {
 import { ArrowsUpDownIcon, HeartIcon } from "@heroicons/react/24/outline";
 import { cn } from "../../../lib/utils";
 import { useNavigate } from "react-router-dom";
+import { Dialog, Transition } from "@headlessui/react";
 
 const formatRupiah = (angka) => {
   const number = typeof angka === "string" ? parseInt(angka, 10) : angka;
@@ -83,6 +84,7 @@ function AtkCard({ atk, presenter }) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [isLiked, setIsLiked] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const viewDetail = (e) => {
     if (
@@ -116,14 +118,22 @@ function AtkCard({ atk, presenter }) {
     if (isAddingToCart || !isTersedia) return;
     setIsAddingToCart(true);
     setFeedback({ type: "", message: "" });
+    console.log("Mulai proses add to cart");
 
     const result = await presenter.handleAddToCart(atk.id, 1);
+    console.log("Hasil addToCart:", result);
 
     if (result.success) {
       setFeedback({
         type: "success",
         message: `${namaAtkDisplay} ditambahkan!`,
       });
+      setShowSuccessModal(true);
+      console.log("setShowSuccessModal(true) dipanggil");
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        console.log("setShowSuccessModal(false) dipanggil (timeout)");
+      }, 2000);
       setTimeout(() => setFeedback({ type: "", message: "" }), 2000);
     } else {
       setFeedback({ type: "error", message: result.error });
@@ -138,11 +148,61 @@ function AtkCard({ atk, presenter }) {
     setIsLiked(!isLiked);
   };
 
+  // Tambahkan log render modal
+  useEffect(() => {
+    if (showSuccessModal) {
+      console.log("Modal sukses sedang dirender!");
+    }
+  }, [showSuccessModal]);
+
   return (
     <div
       className="group bg-white rounded-3xl overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:-translate-y-2 flex flex-col h-full relative shadow-lg border border-slate-100 hover:border-emerald-300"
       onClick={viewDetail}
     >
+      {/* Modal sukses */}
+      <Transition.Root show={showSuccessModal} as={Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={setShowSuccessModal}
+        >
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-30 transition-opacity" />
+          </Transition.Child>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <ShoppingCartIcon className="w-10 h-10 text-emerald-500 mb-2" />
+                  <h3 className="text-lg font-bold text-emerald-700 mb-1">
+                    Berhasil Ditambahkan!
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    {namaAtkDisplay} telah masuk ke keranjang.
+                  </p>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
       {feedback.message && (
         <div
           className={cn(
